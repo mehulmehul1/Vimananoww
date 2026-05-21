@@ -221,7 +221,7 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = SCENES.length;
+const TOTAL_SCENES = 4; // Temporarily capped at scene 3 (Field). Full SCENES array preserved for re-enable.
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -488,7 +488,7 @@ function renderCapsuleForScene(
 export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const timeRef = useRef(0);
-  const sceneRef = useRef(initialScene ?? 0);
+  const sceneRef = useRef(Math.min(initialScene ?? 0, TOTAL_SCENES - 1));
   const sceneTimeRef = useRef(0);
   const progressRef = useRef(0);
   const transitionRef = useRef(1);
@@ -500,7 +500,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
   const langMgrRef = useRef(new LanguageManager(3)); // 3 seconds per language
   const currentLangRef = useRef<Language>('en');
 
-  const [scene, setScene] = useState(initialScene ?? 0);
+  const [scene, setScene] = useState(Math.min(initialScene ?? 0, TOTAL_SCENES - 1));
   const [sceneProgress, setSceneProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
 
