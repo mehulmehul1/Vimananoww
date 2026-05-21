@@ -870,42 +870,27 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // === FLORA SCENES (5, 6, 7) — each formula gets full progress 0→1 ===
+      // === FLORA SCENES (5, 6, 7) — formula only, no DNA helix transition ===
 
       if (renderScene === 5) {
         // FERN — fractal fern with wind sway
         ctx.save();
-        const parentW = 180 * scale;
-        const parentH = 320 * scale;
+        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+        const easedFloraP = easeOutCubic(floraP);
 
-        if (progress < 0.25) {
-          const val = (0.25 - progress) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
-        } else if (progress < 0.75) {
-          const floraP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
-          const easedFloraP = easeOutCubic(floraP);
+        ctx.translate(cx, cy + 120 * scale);
+        const fernP = paramsRef.current.fern;
+        const windSway = Math.sin(t * fernP.windSpeed) * fernP.windSway;
+        ctx.rotate(windSway);
+        ctx.scale(easedFloraP * fernP.textScale * scale * fernP.scale, easedFloraP * fernP.textScale * scale * fernP.scale);
 
-          ctx.save();
-          ctx.translate(cx, cy + 120 * scale);
-          const fernP = paramsRef.current.fern;
-          const windSway = Math.sin(t * fernP.windSpeed) * fernP.windSway;
-          ctx.rotate(windSway);
-          ctx.scale(easedFloraP * fernP.textScale * scale * fernP.scale, easedFloraP * fernP.textScale * scale * fernP.scale);
-
-          const result = fractalFern("FERN", {
-            stemLength: fernP.stemLength, frondPairs: fernP.frondPairs,
-            depth: fernP.depth, angleSpread: fernP.angleSpread, lengthDecay: fernP.lengthDecay,
-          }, t);
-          if (result.type === "segments") {
-            const placements = layoutTextOnSegments(formulaTexts.floraFern, result.segments, fernP.fontSize, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(result.segments, placements, "rgba(16, 185, 129, 0.45)", 0.8, "#ecfdf5", false, fernP.fontSize);
-          }
-          ctx.restore();
-        } else {
-          const val = (progress - 0.75) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        const result = fractalFern("FERN", {
+          stemLength: fernP.stemLength, frondPairs: fernP.frondPairs,
+          depth: fernP.depth, angleSpread: fernP.angleSpread, lengthDecay: fernP.lengthDecay,
+        }, t);
+        if (result.type === "segments") {
+          const placements = layoutTextOnSegments(formulaTexts.floraFern, result.segments, fernP.fontSize, currentFontFamily, { preserveOrder: true });
+          renderFormulaWithGlow(result.segments, placements, "rgba(16, 185, 129, 0.45)", 0.8, "#ecfdf5", false, fernP.fontSize);
         }
         ctx.restore();
       }
@@ -913,37 +898,22 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 6) {
         // TREE — L-system tree with wind sway
         ctx.save();
-        const parentW = 180 * scale;
-        const parentH = 320 * scale;
+        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+        const easedFloraP = easeOutCubic(floraP);
 
-        if (progress < 0.25) {
-          const val = (0.25 - progress) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
-        } else if (progress < 0.75) {
-          const floraP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
-          const easedFloraP = easeOutCubic(floraP);
+        ctx.translate(cx, cy + 160 * scale);
+        const lsysP = paramsRef.current.lsystem;
+        const windSway = Math.sin(t * lsysP.windSpeed) * lsysP.windSway;
+        ctx.rotate(windSway);
+        ctx.scale(easedFloraP * lsysP.textScale * scale * lsysP.scale, easedFloraP * lsysP.textScale * scale * lsysP.scale);
 
-          ctx.save();
-          ctx.translate(cx, cy + 160 * scale);
-          const lsysP = paramsRef.current.lsystem;
-          const windSway = Math.sin(t * lsysP.windSpeed) * lsysP.windSway;
-          ctx.rotate(windSway);
-          ctx.scale(easedFloraP * lsysP.textScale * scale * lsysP.scale, easedFloraP * lsysP.textScale * scale * lsysP.scale);
-
-          const result = lSystemTree("TREE", {
-            angle: lsysP.angle, stepLength: lsysP.stepLength,
-            iterations: lsysP.iterations, startAngle: -90, trunkScale: lsysP.trunkScale,
-          }, t);
-          if (result.type === "segments") {
-            const placements = layoutTextOnSegments(formulaTexts.floraTree, result.segments, lsysP.fontSize, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(result.segments, placements, "rgba(255, 215, 67, 0.45)", 0.8, "#ffd743", false, lsysP.fontSize);
-          }
-          ctx.restore();
-        } else {
-          const val = (progress - 0.75) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        const result = lSystemTree("TREE", {
+          angle: lsysP.angle, stepLength: lsysP.stepLength,
+          iterations: lsysP.iterations, startAngle: -90, trunkScale: lsysP.trunkScale,
+        }, t);
+        if (result.type === "segments") {
+          const placements = layoutTextOnSegments(formulaTexts.floraTree, result.segments, lsysP.fontSize, currentFontFamily, { preserveOrder: true });
+          renderFormulaWithGlow(result.segments, placements, "rgba(255, 215, 67, 0.45)", 0.8, "#ffd743", false, lsysP.fontSize);
         }
         ctx.restore();
       }
@@ -951,71 +921,41 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 7) {
         // CRYSTAL — dendritic crystal with rotation
         ctx.save();
-        const parentW = 180 * scale;
-        const parentH = 320 * scale;
+        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+        const easedFloraP = easeOutCubic(floraP);
 
-        if (progress < 0.25) {
-          const val = (0.25 - progress) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
-        } else if (progress < 0.75) {
-          const floraP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
-          const easedFloraP = easeOutCubic(floraP);
+        ctx.translate(cx, cy);
+        const crystP = paramsRef.current.crystal;
+        ctx.rotate(t * crystP.rotationSpeed);
+        ctx.scale(easedFloraP * crystP.textScale * scale * crystP.scale, easedFloraP * crystP.textScale * scale * crystP.scale);
 
-          ctx.save();
-          ctx.translate(cx, cy);
-          const crystP = paramsRef.current.crystal;
-          ctx.rotate(t * crystP.rotationSpeed);
-          ctx.scale(easedFloraP * crystP.textScale * scale * crystP.scale, easedFloraP * crystP.textScale * scale * crystP.scale);
-
-          const result = dendriticCrystal("CRYSTAL", {
-            seedLength: crystP.seedLength, branches: crystP.branches,
-            depth: crystP.depth, angleSpread: crystP.angleSpread,
-            lengthDecay: crystP.lengthDecay, symmetry: crystP.symmetry,
-          }, t);
-          if (result.type === "segments") {
-            const placements = layoutTextOnSegments(formulaTexts.floraCrystal, result.segments, crystP.fontSize, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(result.segments, placements, "rgba(242, 240, 236, 0.45)", 0.8, "#f2f0ec", false, crystP.fontSize);
-          }
-          ctx.restore();
-        } else {
-          const val = (progress - 0.75) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        const result = dendriticCrystal("CRYSTAL", {
+          seedLength: crystP.seedLength, branches: crystP.branches,
+          depth: crystP.depth, angleSpread: crystP.angleSpread,
+          lengthDecay: crystP.lengthDecay, symmetry: crystP.symmetry,
+        }, t);
+        if (result.type === "segments") {
+          const placements = layoutTextOnSegments(formulaTexts.floraCrystal, result.segments, crystP.fontSize, currentFontFamily, { preserveOrder: true });
+          renderFormulaWithGlow(result.segments, placements, "rgba(242, 240, 236, 0.45)", 0.8, "#f2f0ec", false, crystP.fontSize);
         }
         ctx.restore();
       }
 
-      // === FAUNA SCENES (8, 9, 10) — each formula gets full progress 0→1 ===
+      // === FAUNA SCENES (8, 9, 10) — formula only, no DNA helix transition ===
 
       if (renderScene === 8) {
         // BUTTERFLY — chaotic attractor
         ctx.save();
-        const parentW = 180 * scale;
-        const parentH = 320 * scale;
+        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+        const easedFaunaP = easeOutCubic(faunaP);
 
-        if (progress < 0.25) {
-          const val = (0.25 - progress) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
-        } else if (progress < 0.75) {
-          const faunaP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
-          const easedFaunaP = easeOutCubic(faunaP);
-
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
-          ctx.translate(-200, -200);
-          const result = butterflys("FAUNA", { count: 3 }, t * 2);
-          if (result.type === "segments") {
-            const placements = layoutTextOnSegments(formulaTexts.faunaButterfly, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(result.segments, placements, "rgba(199, 192, 252, 0.55)", 0.9, "#c7c0fc", true, 7.5, false);
-          }
-          ctx.restore();
-        } else {
-          const val = (progress - 0.75) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        ctx.translate(cx, cy);
+        ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
+        ctx.translate(-200, -200);
+        const result = butterflys("FAUNA", { count: 3 }, t * 2);
+        if (result.type === "segments") {
+          const placements = layoutTextOnSegments(formulaTexts.faunaButterfly, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
+          renderFormulaWithGlow(result.segments, placements, "rgba(199, 192, 252, 0.55)", 0.9, "#c7c0fc", true, 7.5, false);
         }
         ctx.restore();
       }
@@ -1023,31 +963,16 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 9) {
         // WAVE — symmetric wave flocking
         ctx.save();
-        const parentW = 180 * scale;
-        const parentH = 320 * scale;
+        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+        const easedFaunaP = easeOutCubic(faunaP);
 
-        if (progress < 0.25) {
-          const val = (0.25 - progress) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
-        } else if (progress < 0.75) {
-          const faunaP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
-          const easedFaunaP = easeOutCubic(faunaP);
-
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
-          ctx.translate(-200, -200);
-          const result = symmetryWave("FAUNA", { waves: 2 }, t * 0.25);
-          if (result.type === "segments") {
-            const placements = layoutTextOnSegments(formulaTexts.faunaWave, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(result.segments, placements, "rgba(185, 234, 186, 0.55)", 0.9, "#b9eaba", true, 7.5, false);
-          }
-          ctx.restore();
-        } else {
-          const val = (progress - 0.75) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        ctx.translate(cx, cy);
+        ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
+        ctx.translate(-200, -200);
+        const result = symmetryWave("FAUNA", { waves: 2 }, t * 0.25);
+        if (result.type === "segments") {
+          const placements = layoutTextOnSegments(formulaTexts.faunaWave, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
+          renderFormulaWithGlow(result.segments, placements, "rgba(185, 234, 186, 0.55)", 0.9, "#b9eaba", true, 7.5, false);
         }
         ctx.restore();
       }
@@ -1055,31 +980,16 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 10) {
         // CREATURE — slimy creature emergent
         ctx.save();
-        const parentW = 180 * scale;
-        const parentH = 320 * scale;
+        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
+        const easedFaunaP = easeOutCubic(faunaP);
 
-        if (progress < 0.25) {
-          const val = (0.25 - progress) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
-        } else if (progress < 0.75) {
-          const faunaP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
-          const easedFaunaP = easeOutCubic(faunaP);
-
-          ctx.save();
-          ctx.translate(cx, cy);
-          ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
-          ctx.translate(-200, -200);
-          const result = slimycreature("FAUNA", { pathCount: 5 }, t * 1.5);
-          if (result.type === "segments") {
-            const placements = layoutTextOnSegments(formulaTexts.faunaCreature, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(result.segments, placements, "rgba(249, 56, 35, 0.55)", 0.9, "#f93823", true, 7.5, false);
-          }
-          ctx.restore();
-        } else {
-          const val = (progress - 0.75) / 0.25;
-          const eased = easeOutCubic(val);
-          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        ctx.translate(cx, cy);
+        ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
+        ctx.translate(-200, -200);
+        const result = slimycreature("FAUNA", { pathCount: 5 }, t * 1.5);
+        if (result.type === "segments") {
+          const placements = layoutTextOnSegments(formulaTexts.faunaCreature, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
+          renderFormulaWithGlow(result.segments, placements, "rgba(249, 56, 35, 0.55)", 0.9, "#f93823", true, 7.5, false);
         }
         ctx.restore();
       }
