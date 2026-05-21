@@ -1267,6 +1267,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
               maxWidth: isMobile ? "calc(100% - 2.5rem)" : "25rem",
               fontFamily: FONT_PRIMARY,
               transition: "all 0.8s ease",
+              display: "none", // Hidden for now
             }}
           >
             <h1
