@@ -1,0 +1,6 @@
+{
+  "name": "Vimana",
+  "description": "An immersive, responsive, scroll-driven kinetic typography and mathematical art experience tracing frequency to biological life forms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
