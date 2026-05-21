@@ -188,7 +188,7 @@ export const FORMULA_TEXTS: Record<Language, {
   en: {
     humCircle: 'VIMANA',
     wordRings: 'VIMANA',
-    fieldCymatic: 'STAND WAVE FIELDS SHIFT ORBITS ROTATE HARMONY GEOMETRY',
+    fieldCymatic: 'VIMANA VIMANA VIMANA VIMANA VIMANA VIMANA VIMANA VIMANA',
     treeRecursion: 'RECURSION BRANCH FLOWS MEMORY SHAPE EVOLVES LIFE IN CODES',
     dnaHelix: 'VMNA',
     floraFern: 'FRACTAL BOTANICAL NATURE LEAF EMERALD GOLD GROW GARDEN',
@@ -205,7 +205,7 @@ export const FORMULA_TEXTS: Record<Language, {
   hi: {
     humCircle: 'विमान',
     wordRings: 'विमान',
-    fieldCymatic: 'स्थिर तरंग क्षेत्र परिवर्तन कक्षा घूमती है सामंजस्य ज्यामिति',
+    fieldCymatic: 'विमान विमान विमान विमान विमान विमान विमान विमान',
     treeRecursion: 'पुनरावृत्ति शाखा प्रवाह स्मृति आकार विकसित जीवन कोड',
     dnaHelix: 'विमा',
     floraFern: 'फ्रैक्टल वनस्पति प्रकृति पत्ता पन्ना स्वर्ण उगो बगीचा',
@@ -222,7 +222,7 @@ export const FORMULA_TEXTS: Record<Language, {
   bn: {
     humCircle: 'বিমান',
     wordRings: 'বিমান',
-    fieldCymatic: 'স্থির তরঙ্গ ক্ষেত্র পরিবর্তন কক্ষপথ ঘোরে সঙ্গতি জ্যামিতি',
+    fieldCymatic: 'বিমান বিমান বিমান বিমান বিমান বিমান বিমান বিমান',
     treeRecursion: 'পুনরাবর্তন শাখা প্রবাহ স্মৃতি আকৃতি বিবর্তন জীবন কোড',
     dnaHelix: 'বিমা',
     floraFern: 'ফ্র্যাক্টাল উদ্ভিজ্জ প্রকৃতি পাতা পান্না স্বর্ণ বৃদ্ধি',
@@ -239,7 +239,7 @@ export const FORMULA_TEXTS: Record<Language, {
   ur: {
     humCircle: 'وِمان',
     wordRings: 'وِمان',
-    fieldCymatic: 'مستقل لہر میدان تبدیلی مدار گھومتی ہے ہم آہنگی جیومیٹری',
+    fieldCymatic: 'وِمان وِمان وِمان وِمان وِمان وِمان وِمان وِمان',
     treeRecursion: 'تکرار شاخ بہاؤ یاد شکل ارتقا زندگی کوڈ',
     dnaHelix: 'وِما',
     floraFern: 'فریکٹل نباتات فطرت پتا زمرد سنہری باغ',
@@ -256,7 +256,7 @@ export const FORMULA_TEXTS: Record<Language, {
   ta: {
     humCircle: 'விமானம்',
     wordRings: 'விமானம்',
-    fieldCymatic: 'நிலை அலை புலம் மாற்றம் சுற்றுப்பாதை சுழல் இணக்கம் வடிவியல்',
+    fieldCymatic: 'விமானம் விமானம் விமானம் விமானம் விமானம் விமானம் விமானம் விமானம்',
     treeRecursion: 'மீள்வு கிளை ஓட்டம் நினைவு வடிவம் பரிணாமம் வாழ்வு குறியீடு',
     dnaHelix: 'விமா',
     floraFern: 'பகுதிப்படி தாவரம் இயற்கை இலை மரகதம் தங்கம் வளர்',
