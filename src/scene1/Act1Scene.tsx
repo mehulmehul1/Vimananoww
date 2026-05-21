@@ -23,111 +23,15 @@ import {
 import { EnvironmentEngine } from "../EnvironmentEngine";
 import { layoutTextOnSegments, type LinePlacement } from "./textLayout";
 
-import { getProject, types } from "@theatre/core";
-import studio from "@theatre/studio";
-
-const proj = getProject("Vimana Act 1");
-const sheet = proj.sheet("Scene 1");
-
-// Dedicated Theatre Objects with Manifest Progress Control
-const singularityObj = sheet.object(
-  "Singularity",
-  {
-    x: types.number(0.5, { range: [0, 1] }),
-    y: types.number(0.5, { range: [0, 1] }),
-    scale: types.number(1, { range: [0.1, 5] }),
-    opacity: types.number(1, { range: [0, 1] }),
-    glow: types.number(32, { range: [0, 100] }),
-    progress: types.number(1, { range: [0, 1] }),
-    fontSize: types.number(18, { range: [8, 120] }),
-    animate: types.boolean(true),
-  },
-  { reconfigure: true },
-);
-
-const textCircleObj = sheet.object(
-  "Text Circle",
-  {
-    x: types.number(0.5, { range: [0, 1] }),
-    y: types.number(0.5, { range: [0, 1] }),
-    scale: types.number(1, { range: [0.1, 5] }),
-    opacity: types.number(1, { range: [0, 1] }),
-    radius: types.number(180, { range: [50, 500] }),
-    progress: types.number(1, { range: [0, 1] }),
-    fontSize: types.number(18, { range: [8, 120] }),
-    animate: types.boolean(true),
-  },
-  { reconfigure: true },
-);
-
-const cymaticRingObj = sheet.object(
-  "Cymatic Ring",
-  {
-    x: types.number(0.5, { range: [0, 1] }),
-    y: types.number(0.5, { range: [0, 1] }),
-    scale: types.number(1, { range: [0.1, 5] }),
-    opacity: types.number(1, { range: [0, 1] }),
-    ringCount: types.number(8, { range: [1, 20] }),
-    waveAmp: types.number(35, { range: [0, 150] }),
-    waveFreq: types.number(2, { range: [0.1, 10] }),
-    progress: types.number(1, { range: [0, 1] }),
-    fontSize: types.number(14, { range: [8, 120] }),
-    animate: types.boolean(true),
-  },
-  { reconfigure: true },
-);
-
-const fractalTreeObj = sheet.object(
-  "Fractal Tree",
-  {
-    x: types.number(0.5, { range: [0, 1] }),
-    y: types.number(0.5, { range: [0, 1] }),
-    scale: types.number(1, { range: [0.1, 5] }),
-    opacity: types.number(1, { range: [0, 1] }),
-    branches: types.number(5, { range: [1, 10] }),
-    depth: types.number(6, { range: [1, 10] }),
-    spread: types.number(52, { range: [10, 120] }),
-    length: types.number(90, { range: [10, 300] }),
-    decay: types.number(0.68, { range: [0.1, 0.9] }),
-    progress: types.number(1, { range: [0, 1] }),
-    fontSize: types.number(11, { range: [6, 80] }),
-    animate: types.boolean(true),
-  },
-  { reconfigure: true },
-);
+import { createTweakpane, DEFAULT_PARAMS, type AllSceneParams } from "./tweakpanePanel";
+import { LanguageManager, getFontForLanguage, getFontFamilyForLanguage, type Language, FORMULA_TEXTS, SCENE_TEXTS, ORNAMENTAL_TEXT, UI_TEXTS, LANGUAGE_LABELS, textDirection, VIMANA_WORD } from "../i18n";
 
 interface Act1SceneProps {
   mode?: "scroll" | "time";
   initialScene?: number;
 }
 
-// Internal State for all Theatre objects
-const THEATRE_STATE: {
-  singularity: typeof singularityObj.value;
-  textCircle: typeof textCircleObj.value;
-  cymaticRing: typeof cymaticRingObj.value;
-  fractalTree: typeof fractalTreeObj.value;
-  environment?: { bloom: number };
-} = {
-  singularity: singularityObj.value,
-  textCircle: textCircleObj.value,
-  cymaticRing: cymaticRingObj.value,
-  fractalTree: fractalTreeObj.value,
-};
 
-function selectObjectForScene(scene: number) {
-  if (!import.meta.env.DEV) return;
-  try {
-    const s = (studio as any).setSelection ? studio : (studio as any).default;
-    if (s && typeof s.setSelection === "function") {
-      if (scene === 0) s.setSelection([singularityObj]);
-      else if (scene === 1 || scene === 2) s.setSelection([textCircleObj]);
-      else if (scene === 3) s.setSelection([cymaticRingObj]);
-    }
-  } catch (e) {
-    console.warn("Theatre auto-selection failed:", e);
-  }
-}
 
 interface SceneDef {
   phaseId: string;
@@ -144,7 +48,10 @@ interface SceneDef {
 }
 
 const FONT_PRIMARY = `'Arial Narrow', 'Space Grotesk', sans-serif`;
-const FONT_CANVAS = `'Arial Narrow', 'Space Grotesk', sans-serif`;
+const FONT_CANVAS_DEFAULT = `'Arial Narrow', 'Space Grotesk', sans-serif`;
+// Mutable font family — set each frame based on current language
+let currentFontFamily = FONT_CANVAS_DEFAULT;
+let currentDirection: 'ltr' | 'rtl' = 'ltr';
 const CYAN = "#21c7df";
 const ALT_ACCENT = "#3f48ef";
 const ALT_RED = "#f93823";
@@ -223,10 +130,10 @@ const SCENES: SceneDef[] = [
   },
   {
     phaseId: "05",
-    navLabel: "FLORA",
-    headline: "FLORA VARIETY EMERGED",
-    body: "A deep variety of botanical forms sprout and grow from seed nodes—from delicate fractal ferns to branching L-system structures—interweaving in space.",
-    formula: "fractalFern + lSystemTree + dendriticCrystal",
+    navLabel: "🌿 FERN",
+    headline: "FERN",
+    body: "A fractal fern unfurls from a seed point, its recursive fronds mirroring the geometry of growth itself.",
+    formula: "fractalFern / recursive",
     status: "flora form",
     frequency: "528.00 Hz",
     amplitude: "0.962",
@@ -236,11 +143,37 @@ const SCENES: SceneDef[] = [
   },
   {
     phaseId: "06",
-    navLabel: "SWARM",
-    headline: "ORGANIC FLUX.",
-    body: "Butterflies fly along chaotic attractors while schooling waves ripple above like flocks of birds in synchronous flight.",
-    formula: "butterflys + symmetryWave",
-    status: "flocking fauna",
+    navLabel: "🌳 TREE",
+    headline: "TREE",
+    body: "An L-system tree branches and rebranches, each iteration writing a new sentence of growth.",
+    formula: "lSystemTree / branching",
+    status: "flora form",
+    frequency: "528.00 Hz",
+    amplitude: "0.962",
+    coordinates: "02 44 11.22 N / 01 19 08.55 E",
+    origin: "fibonacci seed",
+    duration: 7,
+  },
+  {
+    phaseId: "07",
+    navLabel: "❄ CRYSTAL",
+    headline: "CRYSTAL",
+    body: "Dendritic crystals grow in radial symmetry, each branch a frozen echo of recursive geometry.",
+    formula: "dendriticCrystal / radial",
+    status: "flora form",
+    frequency: "528.00 Hz",
+    amplitude: "0.962",
+    coordinates: "02 44 11.22 N / 01 19 08.55 E",
+    origin: "fibonacci seed",
+    duration: 7,
+  },
+  {
+    phaseId: "08",
+    navLabel: "🦋 BUTTERFLY",
+    headline: "BUTTERFLY",
+    body: "Butterflies trace chaotic attractors, their wings inscribed with the mathematics of flight.",
+    formula: "butterflys / attractor",
+    status: "fauna form",
     frequency: "724.11 Hz",
     amplitude: "0.995",
     coordinates: "08 11 12.00 N / 04 22 18.00 E",
@@ -248,7 +181,33 @@ const SCENES: SceneDef[] = [
     duration: 7,
   },
   {
-    phaseId: "07",
+    phaseId: "09",
+    navLabel: "〰 WAVE",
+    headline: "WAVE",
+    body: "Symmetric waves ripple outward in synchronized patterns, schooling like flocks of birds in flight.",
+    formula: "symmetryWave / flocking",
+    status: "fauna form",
+    frequency: "724.11 Hz",
+    amplitude: "0.995",
+    coordinates: "08 11 12.00 N / 04 22 18.00 E",
+    origin: "chaotic attractors",
+    duration: 7,
+  },
+  {
+    phaseId: "10",
+    navLabel: "🫧 CREATURE",
+    headline: "CREATURE",
+    body: "A slimy creature emerges from the depths, its organic paths pulsing with emergent life.",
+    formula: "slimyCreature / emergent",
+    status: "fauna form",
+    frequency: "724.11 Hz",
+    amplitude: "0.995",
+    coordinates: "08 11 12.00 N / 04 22 18.00 E",
+    origin: "chaotic attractors",
+    duration: 7,
+  },
+  {
+    phaseId: "11",
     navLabel: "NETWORK",
     headline: "GLOBAL MIND.",
     body: "The biosphere becomes a single integrated circuit. Synapses snap at tree tips in a global flash of neural awakening.",
@@ -365,8 +324,8 @@ function getFloraResult(cell: StableCell, i: number, t: number) {
 }
 
 function visualCenter(w: number, h: number, scene: number) {
-  const xRatios = [0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44];
-  const yRatios = [0.5, 0.5, 0.48, 0.47, 0.49, 0.5, 0.5, 0.5, 0.5, 0.5];
+  const xRatios = [0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44, 0.44];
+  const yRatios = [0.5, 0.5, 0.48, 0.47, 0.49, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
   return {
     x: w * (xRatios[scene] ?? 0.44),
     y: h * (yRatios[scene] ?? 0.5),
@@ -496,7 +455,7 @@ function renderCapsuleForScene(
   }
   ctx.stroke();
 
-  // Draw DNA letters along strands
+  // Draw DNA letters along strands — same approach as pretext-editor
   const placements = layoutTextOnSegments(
     "VMNA",
     result.segments,
@@ -505,14 +464,18 @@ function renderCapsuleForScene(
   );
   
   ctx.font = `600 ${Math.max(5, Math.round(fontSize))}px 'Space Grotesk', sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
   ctx.fillStyle = "#f8fafc";
   for (const p of placements) {
     if (!p.text.trim()) continue;
+    // Keep text readable — flip if upside-down
+    let rot = p.rotation;
+    if (rot > Math.PI / 2) rot -= Math.PI;
+    if (rot < -Math.PI / 2) rot += Math.PI;
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(p.rotation);
+    ctx.rotate(rot);
     ctx.scale(p.scale, p.scale);
     ctx.globalAlpha = alpha * p.opacity;
     ctx.fillText(p.text, 0, 0);
@@ -532,11 +495,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
   const prevSceneRef = useRef(0);
   const settledRef = useRef(false);
   const settledTimeRef = useRef(0);
-  const paramsRef = useRef({ paused: false });
+  const paramsRef = useRef<AllSceneParams>(JSON.parse(JSON.stringify(DEFAULT_PARAMS)));
   const lastFrameRef = useRef(performance.now());
-
-  // Reactive Theatre State Ref
-  const theatreRef = useRef(THEATRE_STATE);
+  const langMgrRef = useRef(new LanguageManager(3)); // 3 seconds per language
+  const currentLangRef = useRef<Language>('en');
 
   const [scene, setScene] = useState(initialScene ?? 0);
   const [sceneProgress, setSceneProgress] = useState(0);
@@ -549,6 +511,12 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Tweakpane panel init (replaces Theatre.js Studio)
+  useEffect(() => {
+    const handle = createTweakpane(paramsRef, sceneRef);
+    return () => handle.destroy();
   }, []);
 
   const [layoutVariant, setLayoutVariant] = useState<"shell" | "alt">(() => {
@@ -578,23 +546,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
   );
 
   useEffect(() => {
-    // Multi-object Subscription
-    const unsubs = [
-      singularityObj.onValuesChange(
-        (v) => (theatreRef.current.singularity = v),
-      ),
-      textCircleObj.onValuesChange((v) => (theatreRef.current.textCircle = v)),
-      cymaticRingObj.onValuesChange(
-        (v) => (theatreRef.current.cymaticRing = v),
-      ),
-      fractalTreeObj.onValuesChange(
-        (v) => (theatreRef.current.fractalTree = v),
-      ),
-    ];
-
-    // Auto-select Theatre Object
-    selectObjectForScene(sceneRef.current);
-
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "b") {
         if (mode === "scroll") {
@@ -615,7 +566,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           sceneTimeRef.current = 0;
           transitionRef.current = 0;
           setScene(nextScene);
-          selectObjectForScene(nextScene);
         }
       }
     };
@@ -650,7 +600,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         settledRef.current = false;
         settledTimeRef.current = 0;
         setScene(nextScene);
-        selectObjectForScene(nextScene);
       }
 
       progressRef.current = scrollToSceneProgress(scrollProgress);
@@ -673,11 +622,16 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
       if (!isPaused) {
         timeRef.current += dt;
-        // Sync Theatre sequence with our local scene clock
-        sheet.sequence.position = timeRef.current;
       }
 
       const currentScene = sceneRef.current;
+      const lang = langMgrRef.current.update(dt);
+      currentLangRef.current = lang;
+      // Set font and direction for current language
+      currentFontFamily = getFontFamilyForLanguage(lang);
+      currentDirection = textDirection(lang);
+      const langTexts = SCENE_TEXTS[lang];
+      const formulaTexts = FORMULA_TEXTS[lang];
       const sceneDef = SCENES[currentScene];
       const isScrollMode = mode === "scroll";
       const weatherSettled =
@@ -711,8 +665,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const theatre = theatreRef.current;
-      const tone = getTone(theatre.environment?.bloom || 0);
+      const theatre = paramsRef.current;
+      const tone = getTone(theatre.bloom);
       const t = timeRef.current; // Define t for use in rendering
       const isAlt = layoutRef.current === "alt";
       if (isAlt && Math.random() < 0.02)
@@ -791,6 +745,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           c.opacity,
           tone.bloom,
           isAlt,
+          formulaTexts.humCircle,
         );
         ctx.restore();
       }
@@ -812,11 +767,12 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           c.opacity,
           tone.bloom,
           isAlt,
+          formulaTexts.wordRings,
         );
         ctx.restore();
       }
 
-      // 3. Field — morph concentric → cymatic, then tilt + dots
+      // 3. Field — orbital rings with cymatic text
       if (renderScene === 3) {
         if (_sceneEntryT === null) _sceneEntryT = t;
         const ringElapsed = t - _sceneEntryT;
@@ -835,6 +791,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           r,
           r.fontSize,
           isAlt,
+          formulaTexts.fieldCymatic,
         );
         ctx.restore();
       }
@@ -851,31 +808,36 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         textColor = "#f2f0ec",
         glow = false,
         fontSize = 5.2,
+        drawLines = true,
       ) => {
         ctx.save();
-        if (glow) {
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 12 * scale;
+        if (drawLines) {
+          if (glow) {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 12 * scale;
+          }
+          ctx.strokeStyle = color;
+          ctx.lineWidth = width;
+          ctx.beginPath();
+          for (const seg of segments) {
+            ctx.moveTo(seg.x1, seg.y1);
+            ctx.lineTo(seg.x2, seg.y2);
+          }
+          ctx.stroke();
         }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.beginPath();
-        for (const seg of segments) {
-          ctx.moveTo(seg.x1, seg.y1);
-          ctx.lineTo(seg.x2, seg.y2);
-        }
-        ctx.stroke();
 
         ctx.shadowBlur = 0;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.direction = textDirection(lang);
+        const langFont = getFontForLanguage(lang, fontSize);
         for (const p of placements) {
           if (!p.text.trim()) continue;
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate(p.rotation);
           ctx.scale(p.scale, p.scale);
-          ctx.font = `600 ${fontSize}px ${FONT_PRIMARY}`;
+          ctx.font = langFont;
           ctx.globalAlpha = 0.55 + p.opacity * 0.35;
           ctx.fillStyle = textColor;
           ctx.fillText(p.text, 0, 0);
@@ -885,345 +847,251 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       };
 
       if (renderScene === 4) {
+        const dnaP = theatre.dna;
         ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(dnaP.scale, dnaP.scale);
         const parentW = 180 * scale;
         const parentH = 320 * scale;
         renderCapsuleForScene(
           ctx,
-          cx,
-          cy,
+          0,
+          0,
           parentW,
           parentH,
-          5, // turns
-          14, // basePairs
+          dnaP.turns,
+          dnaP.basePairs,
           0,
           t,
           progress, // alpha
           progress, // scaleVal
-          11 * scale,
+          dnaP.fontSize * scale,
         );
         ctx.restore();
       }
 
+      // === FLORA SCENES (5, 6, 7) — each formula gets full progress 0→1 ===
+
       if (renderScene === 5) {
+        // FERN — fractal fern with wind sway
         ctx.save();
         const parentW = 180 * scale;
         const parentH = 320 * scale;
 
-        // Flora Scene: Single DNA helix transitions into Barnsley Fern, L-system Tree, and Dendritic Crystal one-by-one.
-        let subPhase = 0; // 0: Fern, 1: Tree, 2: Crystal
-        let lp = 0;       // local progress within the subPhase (0 to 1)
-
-        if (progress < 0.33) {
-          subPhase = 0;
-          lp = progress / 0.33;
-        } else if (progress < 0.66) {
-          subPhase = 1;
-          lp = (progress - 0.33) / 0.33;
-        } else {
-          subPhase = 2;
-          lp = (progress - 0.66) / 0.34;
-        }
-
-        // Clip local progress safely
-        lp = clamp01(lp);
-
-        if (lp < 0.25) {
-          // 1. Single DNA helix transitions (scales down) to center dot
-          const val = (0.25 - lp) / 0.25;
+        if (progress < 0.25) {
+          const val = (0.25 - progress) / 0.25;
           const eased = easeOutCubic(val);
-          renderCapsuleForScene(
-            ctx,
-            cx,
-            cy,
-            parentW,
-            parentH,
-            5,
-            14,
-            0,
-            t,
-            eased,
-            eased,
-            11 * scale,
-          );
-        } else if (lp < 0.75) {
-          // 2. The selected Flora grows from center dot, sways, and collapses back to dot
-          const floraP = lp < 0.5 ? (lp - 0.25) / 0.25 : (0.75 - lp) / 0.25;
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        } else if (progress < 0.75) {
+          const floraP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
           const easedFloraP = easeOutCubic(floraP);
 
           ctx.save();
-          if (subPhase === 0) {
-            // A. Barnsley Fern (Grows upwards, offset downwards so its center sways at visual center)
-            ctx.translate(cx, cy + 120 * scale);
-            const windSway = Math.sin(t * 1.5) * 0.08;
-            ctx.rotate(windSway);
-            ctx.scale(easedFloraP * 2.3 * scale, easedFloraP * 2.3 * scale);
+          ctx.translate(cx, cy + 120 * scale);
+          const fernP = paramsRef.current.fern;
+          const windSway = Math.sin(t * fernP.windSpeed) * fernP.windSway;
+          ctx.rotate(windSway);
+          ctx.scale(easedFloraP * fernP.textScale * scale * fernP.scale, easedFloraP * fernP.textScale * scale * fernP.scale);
 
-            const result = fractalFern(
-              "FERN",
-              {
-                stemLength: 100,
-                frondPairs: 7,
-                depth: 4,
-                angleSpread: 0.32,
-                lengthDecay: 0.62,
-              },
-              t,
-            );
-            if (result.type === "segments") {
-              const placements = layoutTextOnSegments(
-                "FRACTAL BOTANICAL NATURE LEAF EMERALD GOLD GROW GARDEN",
-                result.segments,
-                7.0,
-                FONT_CANVAS,
-              );
-              renderFormulaWithGlow(
-                result.segments,
-                placements,
-                "rgba(16, 185, 129, 0.45)", // Green
-                0.8,
-                "#ecfdf5",
-                false,
-                7.0,
-              );
-            }
-          } else if (subPhase === 1) {
-            // B. L-system Tree (Grows upwards, offset downwards so its branches occupy screen beautifully)
-            ctx.translate(cx, cy + 120 * scale);
-            const windSway = Math.sin(t * 1.2) * 0.05;
-            ctx.rotate(windSway);
-            ctx.scale(easedFloraP * 2.5 * scale, easedFloraP * 2.5 * scale);
-
-            const result = lSystemTree(
-              "TREE",
-              {
-                angle: 25,
-                stepLength: 10,
-                iterations: 3,
-                startAngle: -90,
-              },
-              t,
-            );
-            if (result.type === "segments") {
-              const placements = layoutTextOnSegments(
-                "STRUCTURE L-SYSTEM TREE BRANCH SYMMETRY ORGANIC GROWTH EVOLUTION",
-                result.segments,
-                7.0,
-                FONT_CANVAS,
-              );
-              renderFormulaWithGlow(
-                result.segments,
-                placements,
-                "rgba(255, 215, 67, 0.45)", // Gold
-                0.8,
-                "#ffd743",
-                false,
-                7.0,
-              );
-            }
-          } else {
-            // C. Dendritic Crystal
-            ctx.translate(cx, cy);
-            ctx.rotate(t * 0.15);
-            ctx.scale(easedFloraP * 1.8 * scale, easedFloraP * 1.8 * scale);
-
-            const result = dendriticCrystal(
-              "CRYSTAL",
-              {
-                seedLength: 16,
-                branches: 4,
-                depth: 3,
-                angleSpread: 0.60,
-                lengthDecay: 0.78,
-                symmetry: 8,
-              },
-              t,
-            );
-            if (result.type === "segments") {
-              const placements = layoutTextOnSegments(
-                "DENDRITIC CRYSTAL SNOW FLAKE AXIS RECURSIVE ICE GEOMETRY",
-                result.segments,
-                7.0,
-                FONT_CANVAS,
-              );
-              renderFormulaWithGlow(
-                result.segments,
-                placements,
-                "rgba(242, 240, 236, 0.45)", // Crisp White
-                0.8,
-                "#f2f0ec",
-                false,
-                7.0,
-              );
-            }
+          const result = fractalFern("FERN", {
+            stemLength: fernP.stemLength, frondPairs: fernP.frondPairs,
+            depth: fernP.depth, angleSpread: fernP.angleSpread, lengthDecay: fernP.lengthDecay,
+          }, t);
+          if (result.type === "segments") {
+            const placements = layoutTextOnSegments(formulaTexts.floraFern, result.segments, fernP.fontSize, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(result.segments, placements, "rgba(16, 185, 129, 0.45)", 0.8, "#ecfdf5", false, fernP.fontSize);
           }
           ctx.restore();
         } else {
-          // 3. Single DNA helix transitions (scales back up)
-          const val = (lp - 0.75) / 0.25;
+          const val = (progress - 0.75) / 0.25;
           const eased = easeOutCubic(val);
-          renderCapsuleForScene(
-            ctx,
-            cx,
-            cy,
-            parentW,
-            parentH,
-            5,
-            14,
-            0,
-            t,
-            eased,
-            eased,
-            11 * scale,
-          );
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
         }
         ctx.restore();
       }
 
       if (renderScene === 6) {
+        // TREE — L-system tree with wind sway
         ctx.save();
         const parentW = 180 * scale;
         const parentH = 320 * scale;
 
-        // Fauna Scene: Single DNA helix transitions into Butterfly, Symmetric Wave, and Slimy Creature one-by-one.
-        let subPhase = 0; // 0: Butterfly, 1: Symmetric Wave, 2: Slimy Creature
-        let lp = 0;       // local progress within the subPhase (0 to 1)
-
-        if (progress < 0.33) {
-          subPhase = 0;
-          lp = progress / 0.33;
-        } else if (progress < 0.66) {
-          subPhase = 1;
-          lp = (progress - 0.33) / 0.33;
-        } else {
-          subPhase = 2;
-          lp = (progress - 0.66) / 0.34;
-        }
-
-        lp = clamp01(lp);
-
-        if (lp < 0.25) {
-          // 1. Single DNA helix transitions (scales down) to center dot
-          const val = (0.25 - lp) / 0.25;
+        if (progress < 0.25) {
+          const val = (0.25 - progress) / 0.25;
           const eased = easeOutCubic(val);
-          renderCapsuleForScene(
-            ctx,
-            cx,
-            cy,
-            parentW,
-            parentH,
-            5,
-            14,
-            0,
-            t,
-            eased,
-            eased,
-            11 * scale,
-          );
-        } else if (lp < 0.75) {
-          // 2. The selected Fauna grows from center dot, moves, and collapses back to dot
-          const faunaP = lp < 0.5 ? (lp - 0.25) / 0.25 : (0.75 - lp) / 0.25;
-          const easedFaunaP = easeOutCubic(faunaP);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        } else if (progress < 0.75) {
+          const floraP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
+          const easedFloraP = easeOutCubic(floraP);
 
           ctx.save();
-          ctx.translate(cx, cy);
+          ctx.translate(cx, cy + 160 * scale);
+          const lsysP = paramsRef.current.lsystem;
+          const windSway = Math.sin(t * lsysP.windSpeed) * lsysP.windSway;
+          ctx.rotate(windSway);
+          ctx.scale(easedFloraP * lsysP.textScale * scale * lsysP.scale, easedFloraP * lsysP.textScale * scale * lsysP.scale);
 
-          if (subPhase === 0) {
-            // A. Butterfly
-            ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
-            ctx.translate(-200, -200); // Shift internal formula workspace origin to screen space center (cx, cy)
-            const result = butterflys("FAUNA", { count: 3 }, t * 2);
-            if (result.type === "segments") {
-              const placements = layoutTextOnSegments(
-                "BUTTERFLY FLIGHT CHAOTIC LORENZ ATTRACTOR SWARM FLUTTER LIFE",
-                result.segments,
-                7.5,
-                FONT_CANVAS,
-              );
-              renderFormulaWithGlow(
-                result.segments,
-                placements,
-                "rgba(199, 192, 252, 0.55)", // Beautiful light purple
-                0.9,
-                "#c7c0fc",
-                true,
-                7.5,
-              );
-            }
-          } else if (subPhase === 1) {
-            // B. Symmetric Wave
-            ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
-            ctx.translate(-200, -200); // Shift internal formula workspace origin to screen space center (cx, cy)
-            const result = symmetryWave("FAUNA", { waves: 2 }, t * 0.25);
-            if (result.type === "segments") {
-              const placements = layoutTextOnSegments(
-                "SYMMETRIC RESONANCE WAVEFLOCK AQUATIC HARMONIC SOUND RESONATOR",
-                result.segments,
-                7.5,
-                FONT_CANVAS,
-              );
-              renderFormulaWithGlow(
-                result.segments,
-                placements,
-                "rgba(185, 234, 186, 0.55)", // Soft green
-                0.9,
-                "#b9eaba",
-                true,
-                7.5,
-              );
-            }
-          } else {
-            // C. Slimy Creature
-            ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
-            ctx.translate(-200, -200); // Shift internal formula workspace origin to screen space center (cx, cy)
-            const result = slimycreature("FAUNA", { pathCount: 5 }, t * 1.5);
-            if (result.type === "segments") {
-              const placements = layoutTextOnSegments(
-                "AMINO SLIMY CREATURE ORGANISM PRIMORDIAL SOUP GOLD CHAOS",
-                result.segments,
-                7.5,
-                FONT_CANVAS,
-              );
-              renderFormulaWithGlow(
-                result.segments,
-                placements,
-                "rgba(249, 56, 35, 0.55)", // Red/Orange accent
-                0.9,
-                "#f93823",
-                true,
-                7.5,
-              );
-            }
+          const result = lSystemTree("TREE", {
+            angle: lsysP.angle, stepLength: lsysP.stepLength,
+            iterations: lsysP.iterations, startAngle: -90, trunkScale: lsysP.trunkScale,
+          }, t);
+          if (result.type === "segments") {
+            const placements = layoutTextOnSegments(formulaTexts.floraTree, result.segments, lsysP.fontSize, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(result.segments, placements, "rgba(255, 215, 67, 0.45)", 0.8, "#ffd743", false, lsysP.fontSize);
           }
           ctx.restore();
         } else {
-          // 3. Single DNA helix transitions (scales back up)
-          const val = (lp - 0.75) / 0.25;
+          const val = (progress - 0.75) / 0.25;
           const eased = easeOutCubic(val);
-          renderCapsuleForScene(
-            ctx,
-            cx,
-            cy,
-            parentW,
-            parentH,
-            5,
-            14,
-            0,
-            t,
-            eased,
-            eased,
-            11 * scale,
-          );
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
         }
         ctx.restore();
       }
 
-
       if (renderScene === 7) {
+        // CRYSTAL — dendritic crystal with rotation
+        ctx.save();
+        const parentW = 180 * scale;
+        const parentH = 320 * scale;
+
+        if (progress < 0.25) {
+          const val = (0.25 - progress) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        } else if (progress < 0.75) {
+          const floraP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
+          const easedFloraP = easeOutCubic(floraP);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          const crystP = paramsRef.current.crystal;
+          ctx.rotate(t * crystP.rotationSpeed);
+          ctx.scale(easedFloraP * crystP.textScale * scale * crystP.scale, easedFloraP * crystP.textScale * scale * crystP.scale);
+
+          const result = dendriticCrystal("CRYSTAL", {
+            seedLength: crystP.seedLength, branches: crystP.branches,
+            depth: crystP.depth, angleSpread: crystP.angleSpread,
+            lengthDecay: crystP.lengthDecay, symmetry: crystP.symmetry,
+          }, t);
+          if (result.type === "segments") {
+            const placements = layoutTextOnSegments(formulaTexts.floraCrystal, result.segments, crystP.fontSize, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(result.segments, placements, "rgba(242, 240, 236, 0.45)", 0.8, "#f2f0ec", false, crystP.fontSize);
+          }
+          ctx.restore();
+        } else {
+          const val = (progress - 0.75) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        }
+        ctx.restore();
+      }
+
+      // === FAUNA SCENES (8, 9, 10) — each formula gets full progress 0→1 ===
+
+      if (renderScene === 8) {
+        // BUTTERFLY — chaotic attractor
+        ctx.save();
+        const parentW = 180 * scale;
+        const parentH = 320 * scale;
+
+        if (progress < 0.25) {
+          const val = (0.25 - progress) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        } else if (progress < 0.75) {
+          const faunaP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
+          const easedFaunaP = easeOutCubic(faunaP);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
+          ctx.translate(-200, -200);
+          const result = butterflys("FAUNA", { count: 3 }, t * 2);
+          if (result.type === "segments") {
+            const placements = layoutTextOnSegments(formulaTexts.faunaButterfly, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(result.segments, placements, "rgba(199, 192, 252, 0.55)", 0.9, "#c7c0fc", true, 7.5, false);
+          }
+          ctx.restore();
+        } else {
+          const val = (progress - 0.75) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        }
+        ctx.restore();
+      }
+
+      if (renderScene === 9) {
+        // WAVE — symmetric wave flocking
+        ctx.save();
+        const parentW = 180 * scale;
+        const parentH = 320 * scale;
+
+        if (progress < 0.25) {
+          const val = (0.25 - progress) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        } else if (progress < 0.75) {
+          const faunaP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
+          const easedFaunaP = easeOutCubic(faunaP);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
+          ctx.translate(-200, -200);
+          const result = symmetryWave("FAUNA", { waves: 2 }, t * 0.25);
+          if (result.type === "segments") {
+            const placements = layoutTextOnSegments(formulaTexts.faunaWave, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(result.segments, placements, "rgba(185, 234, 186, 0.55)", 0.9, "#b9eaba", true, 7.5, false);
+          }
+          ctx.restore();
+        } else {
+          const val = (progress - 0.75) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        }
+        ctx.restore();
+      }
+
+      if (renderScene === 10) {
+        // CREATURE — slimy creature emergent
+        ctx.save();
+        const parentW = 180 * scale;
+        const parentH = 320 * scale;
+
+        if (progress < 0.25) {
+          const val = (0.25 - progress) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        } else if (progress < 0.75) {
+          const faunaP = progress < 0.5 ? (progress - 0.25) / 0.25 : (0.75 - progress) / 0.25;
+          const easedFaunaP = easeOutCubic(faunaP);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
+          ctx.translate(-200, -200);
+          const result = slimycreature("FAUNA", { pathCount: 5 }, t * 1.5);
+          if (result.type === "segments") {
+            const placements = layoutTextOnSegments(formulaTexts.faunaCreature, result.segments, 7.5, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(result.segments, placements, "rgba(249, 56, 35, 0.55)", 0.9, "#f93823", true, 7.5, false);
+          }
+          ctx.restore();
+        } else {
+          const val = (progress - 0.75) / 0.25;
+          const eased = easeOutCubic(val);
+          renderCapsuleForScene(ctx, cx, cy, parentW, parentH, 5, 14, 0, t, eased, eased, 11 * scale);
+        }
+        ctx.restore();
+      }
+
+      // === NETWORK (scene 11) ===
+
+      if (renderScene === 11) {
+        const netP = theatre.network;
         ctx.save();
         ctx.translate(cx, cy);
-        const netText =
-          "NEURAL SYNAPSE AWAKENING Awareness mind biosphere connected tree thinking snaps";
+        ctx.scale(netP.scale, netP.scale);
+        const netText = formulaTexts.networkNeural;
         const angle = lerp(16, 32, progress);
         const step = lerp(5, 9, progress) * scale;
         const iter = Math.round(lerp(2, 5, progress));
@@ -1236,8 +1104,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           const placements = layoutTextOnSegments(
             netText,
             result.segments,
-            8 * scale,
-            FONT_CANVAS,
+            netP.fontSize * scale,
+            currentFontFamily,
           );
           renderFormulaWithGlow(
             result.segments,
@@ -1246,6 +1114,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             1.4,
             "#ffffff",
             true,
+            netP.fontSize * scale,
           );
         }
         if (progress > 0.88) {
@@ -1282,8 +1151,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // Ornamental border (right + bottom, L-shaped)
-      renderBorder(ctx, w, h, tone, isAlt);
+      // Ornamental border (right + bottom, L-shaped) — always English
+      renderBorder(ctx, w, h, tone, isAlt, ORNAMENTAL_TEXT['en']);
 
       animationId = requestAnimationFrame(render);
     };
@@ -1301,7 +1170,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       document.body.classList.remove("act1-scroll-mode");
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("keydown", handleKey);
-      unsubs.forEach((u) => u());
       if (idleTimer) clearTimeout(idleTimer);
     };
   }, [mode, scrollToScene, scrollToSceneProgress]);
@@ -1408,9 +1276,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
                 fontWeight: 500,
                 color: tone.ink,
                 marginBottom: "0.5rem",
+                direction: textDirection(currentLangRef.current),
               }}
             >
-              {sceneDef.headline}
+              {(SCENE_TEXTS[currentLangRef.current]?.[scene] ?? sceneDef).headline}
             </h1>
             <p
               style={{
@@ -1420,9 +1289,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
                 color: tone.muted,
                 opacity: 0.8,
                 margin: 0,
+                direction: textDirection(currentLangRef.current),
               }}
             >
-              {sceneDef.body}
+              {(SCENE_TEXTS[currentLangRef.current]?.[scene] ?? sceneDef).body}
             </p>
           </section>
 
@@ -1531,11 +1401,12 @@ function renderBorder(
   h: number,
   tone: { bg: string; ink: string },
   isAlt: boolean,
+  ornamentalTextOverride?: string,
 ) {
   const bw = Math.max(20, w * 0.04);
 
   // Ornamental text string (NO SPACES)
-  const ornamentalText = "VIMANAVIMANAVIMANAVIMANA❋";
+  const ornamentalText = ornamentalTextOverride ?? "VIMANAVIMANAVIMANAVIMANA❋";
   const fontSize = bw * 0.5;
   ctx.font = `${fontSize}px ${BORDER_FONT}`;
   ctx.textAlign = "center";
@@ -1549,7 +1420,7 @@ function renderBorder(
 
   const cx = w - bw / 2; // horizontal center of right-edge column
   const cy = h - bw / 2; // vertical center of bottom-edge row
-  const startX = w * 0.5;
+  const startX = w * 0.7; // bottom border covers only 30% of screen width
   const startY = h * 0.5;
   const chars = ornamentalText.split("");
   let charIdx = 0;
@@ -1616,12 +1487,25 @@ const _measureCtx = _measureCanvas.getContext("2d")!;
 // Cache character widths by font string to avoid repeated measureText calls
 const _widthCache = new Map<string, number[]>();
 
+// Use Intl.Segmenter for proper grapheme cluster splitting (handles Devanagari conjuncts, etc.)
+const _graphemeSegmenter = typeof Intl !== 'undefined' && Intl.Segmenter
+  ? new Intl.Segmenter(undefined, { granularity: 'grapheme' })
+  : null;
+
+function _splitGraphemes(text: string): string[] {
+  if (_graphemeSegmenter) {
+    return [..._graphemeSegmenter.segment(text)].map(s => s.segment);
+  }
+  return [...text]; // fallback: code-point splitting (good for most scripts)
+}
+
 function _getCharWidths(text: string, font: string): number[] {
   const key = `${font}|${text}`;
   const cached = _widthCache.get(key);
   if (cached) return cached;
   _measureCtx.font = font;
-  const widths = text.split("").map((ch) => _measureCtx.measureText(ch).width);
+  const graphemes = _splitGraphemes(text);
+  const widths = graphemes.map((g) => _measureCtx.measureText(g).width);
   _widthCache.set(key, widths);
   return widths;
 }
@@ -1641,16 +1525,17 @@ function layoutTextOnCircleArc(
 ): LinePlacement[] {
   const font = `600 ${fontSize}px ${fontFamily}`;
   const charWidths = _getCharWidths(text, font);
+  const graphemes = _splitGraphemes(text);
   const singlePassWidth = charWidths.reduce((a, b) => a + b, 0);
   const circumference = 2 * Math.PI * radius;
 
   // Repeat text enough times to fill the full circle
   const repeats = Math.max(1, Math.ceil(circumference / singlePassWidth));
-  const fullText = text.repeat(repeats);
-  // Build repeated char-widths array
+  const fullGraphemes: string[] = [];
   const allWidths: number[] = [];
   for (let r = 0; r < repeats; r++) {
-    for (let i = 0; i < charWidths.length; i++) {
+    for (let i = 0; i < graphemes.length; i++) {
+      fullGraphemes.push(graphemes[i]);
       allWidths.push(charWidths[i]);
     }
   }
@@ -1661,14 +1546,14 @@ function layoutTextOnCircleArc(
   const placements: LinePlacement[] = [];
   let arcPos = 0;
 
-  for (let i = 0; i < fullText.length; i++) {
+  for (let i = 0; i < fullGraphemes.length; i++) {
     const charAngle =
       startAngle + arcPos / radius + allWidths[i] / (2 * radius);
     const x = radius * Math.cos(charAngle);
     const y = radius * Math.sin(charAngle);
     const rotation = charAngle + Math.PI / 2;
     placements.push({
-      text: fullText[i],
+      text: fullGraphemes[i],
       x: cx + x,
       y: cy + y,
       rotation,
@@ -1706,7 +1591,7 @@ function getOrCreateOffscreenChar(
   fontFamily: string,
   fillColor: string,
 ): OffscreenCharCacheEntry {
-  const key = `${char}_${fontSize}_${fillColor}`;
+  const key = `${char}_${fontSize}_${fontFamily}_${fillColor}`;
   if (_offscreenCharCache.has(key)) {
     return _offscreenCharCache.get(key)!;
   }
@@ -1726,6 +1611,7 @@ function getOrCreateOffscreenChar(
   ctx.fillStyle = fillColor;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.direction = currentDirection;
   ctx.fillText(char, width / 2, height / 2);
 
   const entry: OffscreenCharCacheEntry = {
@@ -1751,7 +1637,7 @@ function getOrCreateOffscreenWord(
   fontFamily: string,
   fillColor: string,
 ): OffscreenWordCacheEntry {
-  const key = `${text}_${fontSize}_${fillColor}`;
+  const key = `${text}_${fontSize}_${fontFamily}_${fillColor}`;
   if (_offscreenWordCache.has(key)) {
     return _offscreenWordCache.get(key)!;
   }
@@ -1771,6 +1657,7 @@ function getOrCreateOffscreenWord(
   ctx.fillStyle = fillColor;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
+  ctx.direction = currentDirection;
   ctx.fillText(text, width / 2, height / 2);
 
   const entry: OffscreenWordCacheEntry = {
@@ -1791,7 +1678,7 @@ function getOrCreateOffscreenRing(
   fillColor: string,
 ): OffscreenRingCacheEntry {
   const rKey = Math.round(radius * 10) / 10;
-  const key = `${text}_${rKey}_${fontSize}_${strokeColor}_${fillColor}`;
+  const key = `${text}_${rKey}_${fontSize}_${fontFamily}_${strokeColor}_${fillColor}`;
   if (_offscreenRingCache.has(key)) {
     return _offscreenRingCache.get(key)!;
   }
@@ -1831,6 +1718,7 @@ function getOrCreateOffscreenRing(
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillStyle = fillColor;
+  ctx.direction = currentDirection;
 
   for (const p of placements) {
     if (!p.text.trim()) continue;
@@ -1864,7 +1752,7 @@ function layoutTextOnCircleArcCached(
   // We round radius slightly to avoid cache misses on sub-pixel floating point math.
   // Using 1 decimal place.
   const rKey = Math.round(radius * 10) / 10;
-  const key = `${text}_${rKey}_${fontSize}`;
+  const key = `${text}_${rKey}_${fontSize}_${fontFamily}`;
 
   if (_circleLayoutMap.has(key)) {
     const cached = _circleLayoutMap.get(key)!;
@@ -1905,8 +1793,9 @@ function renderFirstRing(
   alpha: number,
   bloom: number,
   isAlt: boolean,
+  text?: string,
 ) {
-  const text = "VIMANA";
+  const ringText: string = text ?? "VIMANA";
   const currentRadius =
     elapsed < 3
       ? 125 + (220 - 125) * easeOutCubic(Math.min(1, elapsed / 3))
@@ -1914,18 +1803,18 @@ function renderFirstRing(
   const currentFontSize =
     elapsed < 3 ? 13 + (24 - 13) * easeOutCubic(Math.min(1, elapsed / 3)) : 24;
   const ringRotation = t * 0.06;
-  const result = textCircle(text, { radius: currentRadius }, t);
+  const result = textCircle(ringText, { radius: currentRadius }, t);
   if (result.type !== "segments") return;
 
   // Use direct arc-based character placement for continuous flow around the circle.
   // This bypasses the segment sorting issue and gives correct tangent angles.
   const placements = layoutTextOnCircleArcCached(
-    text,
+    ringText,
     0,
     0,
     currentRadius,
     currentFontSize,
-    FONT_CANVAS,
+    currentFontFamily,
   );
   const strokeColor = isAlt
     ? hexToRGBA(ALT_ACCENT, 0.7)
@@ -1945,6 +1834,8 @@ function renderFirstRing(
     1,
     1,
     textColor,
+    currentFontFamily,
+    currentDirection,
   );
 }
 
@@ -1959,8 +1850,9 @@ function renderMorphingRing(
   params: any,
   fontSize: number,
   isAlt: boolean,
+  text?: string,
 ) {
-  const text = "VIMANA";
+  const ringText: string = text ?? "VIMANA";
   const MAX_RINGS = 8;
   const ringCount = 3 + (MAX_RINGS - 3) * Math.min(1, Math.max(0, elapsed) / 3);
   const ringRotation = t * 0.08;
@@ -1991,9 +1883,8 @@ function renderMorphingRing(
     // Stagger up and down subwoofer effect based on t, but keep center 0,0 locally
     const yOffset = 0;
 
-    // Wavy amplitude for transition out
-    const waveAmp =
-      (elapsed > 6 ? easeOutCubic(Math.min(1, (elapsed - 6) / 2)) : 0) * 20;
+    // Wavy amplitude — disabled (no distortion)
+    const waveAmp = 0;
 
     const paletteColor = isAlt ? ALT_PALETTE[i % ALT_PALETTE.length] : null;
     const strokeCol = isAlt
@@ -2005,10 +1896,10 @@ function renderMorphingRing(
     if (waveAmp === 0) {
       // FAST PATH: Off-screen GPU Canvas rendering (200x faster!)
       const ringEntry = getOrCreateOffscreenRing(
-        text,
+        ringText,
         radius,
         ringFontSize,
-        FONT_CANVAS,
+        currentFontFamily,
         strokeCol,
         fillCol,
       );
@@ -2051,12 +1942,12 @@ function renderMorphingRing(
 
       // 2. Draw wavy characters using ultra-high performance character-level blitting
       const placements = layoutTextOnCircleArcCached(
-        text,
+        ringText,
         0,
         0,
         scaledRadius,
         ringFontSize,
-        FONT_CANVAS,
+        currentFontFamily,
       );
 
       ctx.globalAlpha = alpha * textAlpha;
@@ -2073,7 +1964,7 @@ function renderMorphingRing(
         const charEntry = getOrCreateOffscreenChar(
           p.text,
           ringFontSize,
-          FONT_CANVAS,
+          currentFontFamily,
           fillCol,
         );
 
@@ -2160,8 +2051,9 @@ function renderConcentricRings(
   alpha: number,
   bloom: number,
   isAlt: boolean,
+  text?: string,
 ) {
-  const text = "VIMANA";
+  const ringText: string = text ?? "VIMANA";
   const MAX_RINGS = 4;
   const ringRotation = t * 0.12;
 
@@ -2215,10 +2107,10 @@ function renderConcentricRings(
 
     // Fast GPU path
     const ringEntry = getOrCreateOffscreenRing(
-      text,
+      ringText,
       baseRadius,
       ringFontSize,
-      FONT_CANVAS,
+      currentFontFamily,
       strokeCol,
       fillCol,
     );
@@ -2251,11 +2143,12 @@ function renderFractalTree(
   params: any,
   fontSize: number,
   isAlt: boolean,
+  text?: string,
 ) {
-  const text =
+  const treeText: string = text ??
     "VIMANA from primordial vibration life emerges branching fractaling growing each frequency a new form each word a new leaf the tree of consciousness reaches toward light";
   const result = fractalTree(
-    text,
+    treeText,
     {
       rootBranches: params.branches,
       depth: params.depth,
@@ -2268,10 +2161,10 @@ function renderFractalTree(
   if (result.type !== "segments") return;
 
   const placements = layoutTextOnSegments(
-    text,
+    treeText,
     result.segments,
     fontSize,
-    FONT_CANVAS,
+    currentFontFamily,
   );
   const strokeColor = isAlt
     ? hexToRGBA(ALT_PURPLE, 0.75)
@@ -2292,6 +2185,8 @@ function renderFractalTree(
     0.9,
     strokeWidth,
     textColor,
+    currentFontFamily,
+    currentDirection,
   );
 }
 
@@ -2316,6 +2211,8 @@ function drawSegmentText(
   scaleY = 1,
   lineWidth = 1,
   textColor?: string,
+  fontOverride?: string,
+  direction: 'ltr' | 'rtl' = 'ltr',
 ) {
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -2332,13 +2229,15 @@ function drawSegmentText(
   ctx.stroke();
 
   const fill = textColor || (bloom > 0.45 ? INK : "#f2f0ec");
+  ctx.direction = direction;
+  const font = fontOverride || `600 ${fontSize}px ${currentFontFamily}`;
   for (const p of placements) {
     if (!p.text.trim()) continue;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rotation);
     ctx.scale(p.scale, p.scale);
-    ctx.font = `600 ${fontSize}px ${FONT_CANVAS}`;
+    ctx.font = font;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.globalAlpha = (0.55 + p.opacity * 0.35) * alpha;

@@ -52,7 +52,7 @@ interface SegmentMapping {
 function layoutTextOnSegments(text: string, segments: LineSegment[], fontSize: number, selectedTemplate: Template): SegmentMapping {
   if (!text.trim() || segments.length === 0) return { placements: [], segmentIndices: [] };
 
-
+  const complex = /[\u0900-\u0D7F\u0600-\u06FF\u0750-\u077F]/.test(text);
   const font = `600 ${fontSize}px ${FONT_FAMILY}`;
   const prepared = prepareWithSegments(text, font);
   const placements: LinePlacement[] = [];
@@ -78,11 +78,20 @@ function layoutTextOnSegments(text: string, segments: LineSegment[], fontSize: n
 
     const depthScale = Math.max(0.2, 1.0 - seg.depth * 0.12);
 
-    if (seg.length < fontSize * depthScale * 0.5) continue;
+    // For complex scripts, use wider minimum to avoid broken grapheme clusters
+    const minLen = complex ? fontSize * depthScale * 1.2 : fontSize * depthScale * 0.5;
+    if (seg.length < minLen) continue;
 
     const line = layoutNextLine(prepared, cursor, seg.length * 0.9 / depthScale);
     if (!line) {
       cursor = { segmentIndex: 0, graphemeIndex: 0 };
+      continue;
+    }
+
+    // Skip text with isolated combining marks for complex scripts
+    // (they render as dotted circles ◌ which look like "null characters")
+    if (complex && /^[\u0300-\u036f\u0900-\u097F\u0980-\u09FF\u0B80-\u0BFF\u0600-\u06FF]|[\u0300-\u036f\u0900-\u097F\u0980-\u09FF\u0B80-\u0BFF\u0600-\u06FF]$/.test(line.text)) {
+      cursor = line.end;
       continue;
     }
 

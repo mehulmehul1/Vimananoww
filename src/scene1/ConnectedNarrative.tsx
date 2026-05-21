@@ -16,6 +16,7 @@ import {
 } from '../pretext-editor/formulas';
 import { layoutTextOnSegments, type LinePlacement } from './textLayout';
 import { useGenesisStore } from '../store';
+import { LanguageManager, getFontForLanguage, type Language, FORMULA_TEXTS, SCENE_TEXTS, LANGUAGE_LABELS } from '../i18n';
 
 // ─── Constants ────────────────────────────────────────────────────────────
 const FONT_PRIMARY = `'Space Grotesk', 'Inter', sans-serif`;
@@ -252,6 +253,8 @@ export function ConnectedNarrative() {
   // Local Animation Clock
   const clockRef = useRef(0);
   const lastFrameRef = useRef(performance.now());
+  const langMgrRef = useRef(new LanguageManager(10));
+  const currentLangRef = useRef<Language>('en');
 
   // Frame Resize and Render Loop
   useEffect(() => {
@@ -267,6 +270,8 @@ export function ConnectedNarrative() {
       const dt = Math.min((now - lastFrameRef.current) / 1000, 0.05);
       lastFrameRef.current = now;
       clockRef.current += dt;
+      const lang = langMgrRef.current.update(dt);
+      currentLangRef.current = lang;
 
       const w = canvas.offsetWidth;
       const h = canvas.offsetHeight;
@@ -291,7 +296,7 @@ export function ConnectedNarrative() {
       drawTechnicalGrid(ctx, w, h, scale, globalProgress);
 
       // Draw based on the active scene
-      drawSceneFormula(ctx, activeScene, sceneProgress, t, cx, cy, scale);
+      drawSceneFormula(ctx, activeScene, sceneProgress, t, cx, cy, scale, lang);
 
       animId = requestAnimationFrame(render);
     };
@@ -411,7 +416,7 @@ export function ConnectedNarrative() {
             {/* Act badge */}
             <div className="flex items-center mb-2">
               <span className="text-[10px] font-mono text-cyan-400/80 tracking-widest uppercase">
-                {activeDef.act} / {activeDef.navLabel}
+                {activeDef.act} / {(SCENE_TEXTS[currentLangRef.current]?.[activeScene] ?? activeDef).navLabel}
               </span>
             </div>
 
@@ -496,8 +501,10 @@ function drawSceneFormula(
   cx: number,
   cy: number,
   scale: number,
+  lang: Language = 'en',
 ) {
   const fontCanvas = `'JetBrains Mono', 'Space Grotesk', sans-serif`;
+  const formulaTexts = FORMULA_TEXTS[lang];
 
   // Helper inside loop: wrapper segment drawing
   const renderFormulaWithGlow = (
@@ -506,23 +513,26 @@ function drawSceneFormula(
     color: string,
     width = 1,
     textColor = '#f2f0ec',
-    glow = false
+    glow = false,
+    drawLines = true
   ) => {
     ctx.save();
     
-    // Line glow
-    if (glow) {
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 12 * scale;
+    if (drawLines) {
+      // Line glow
+      if (glow) {
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12 * scale;
+      }
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      for (const seg of segments) {
+        ctx.moveTo(seg.x1, seg.y1);
+        ctx.lineTo(seg.x2, seg.y2);
+      }
+      ctx.stroke();
     }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    for (const seg of segments) {
-      ctx.moveTo(seg.x1, seg.y1);
-      ctx.lineTo(seg.x2, seg.y2);
-    }
-    ctx.stroke();
 
     ctx.shadowBlur = 0; // turn off glow for text
     ctx.font = `600 ${Math.max(7, Math.round(11 * scale))}px ${FONT_PRIMARY}`;
@@ -565,7 +575,7 @@ function drawSceneFormula(
       ctx.font = `500 ${Math.round(8 * scale)}px ${FONT_MONO}`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
       ctx.textAlign = 'center';
-      ctx.fillText('FREQUENCY VOID', 0, -18 * scale);
+      ctx.fillText(formulaTexts.humCircle.split(' . ').pop() || 'FREQUENCY VOID', 0, -18 * scale);
       ctx.restore();
       break;
     }
@@ -573,7 +583,7 @@ function drawSceneFormula(
     // Phase 01: THE HUM (Expanding circle with single word VIMANA)
     case 1: {
       const radius = lerp(120, 220, progress) * scale;
-      const text = 'VIMANA . POTENTIAL OF SOUND . PRIMORDIAL SILENCE . FREQUENCY';
+      const text = formulaTexts.humCircle;
       const result = textCircle(text, { radius }, time);
       if (result.type === 'segments') {
         const placements = layoutTextOnSegments(text, result.segments, 12 * scale, fontCanvas);
@@ -593,7 +603,7 @@ function drawSceneFormula(
       for (let i = 0; i < count; i++) {
         const r = (90 + i * 42) * scale;
         const speedMultiplier = 1.0 - (i * 0.15);
-        const text = 'VIMANA NAMES THE UNIVERSE WORDS CRYSTALLIZE TRUTH';
+        const text = formulaTexts.wordRings;
         const result = textCircle(text, { radius: r }, time * speedMultiplier);
         if (result.type === 'segments') {
           const fs = (14 - i * 1.5) * scale;
@@ -611,12 +621,12 @@ function drawSceneFormula(
       const rc = 6;
       ctx.save();
       ctx.translate(cx, cy);
-      const text = 'STAND WAVE FIELDS SHIFT ORBITS ROTATE HARMONY GEOMETRY';
+      const text = formulaTexts.fieldCymatic;
       
       const result = cymaticRing(text, {
         ringCount: rc,
         waveFreq: 4,
-        waveAmp: 18 * scale,
+        waveAmp: 0,
         modeRadial: 2
       }, time);
 
@@ -644,7 +654,7 @@ function drawSceneFormula(
     case 4: {
       ctx.save();
       ctx.translate(cx, cy + 80 * scale); // slide trunk down just a bit
-      const text = 'RECURSION BRANCH FLOWS MEMORY SHAPE EVOLVES LIFE IN CODES';
+      const text = formulaTexts.treeRecursion;
       
       const bCount = Math.round(lerp(4, 8, progress));
       const trDepth = Math.round(lerp(2, 6, progress));
@@ -671,7 +681,7 @@ function drawSceneFormula(
     case 5: {
       ctx.save();
       ctx.translate(cx, cy);
-      const text = "VMNA";
+      const text = formulaTexts.dnaHelix;
       
       const turns = lerp(2, 7, progress);
       const radius = lerp(50, 95, progress) * scale;
@@ -735,7 +745,7 @@ function drawSceneFormula(
     case 6: {
       ctx.save();
       ctx.translate(cx, cy - 80 * scale); // adjusted centering
-      const text = "BIO AMINO ACID primodial cell replication pools divided undulates golden heat";
+      const text = formulaTexts.faunaCreature;
       
       const pathCount = Math.round(lerp(2, 9, progress));
       const spacingValue = lerp(16, 38, progress) * scale;
@@ -752,7 +762,7 @@ function drawSceneFormula(
 
       if (result.type === 'segments') {
         const placements = layoutTextOnSegments(text, result.segments, 9 * scale, fontCanvas);
-        renderFormulaWithGlow(result.segments, placements, 'rgba(245, 158, 11, 0.35)', 1.2, '#fef3c7', true);
+        renderFormulaWithGlow(result.segments, placements, 'rgba(245, 158, 11, 0.35)', 1.2, '#fef3c7', true, false);
       }
       ctx.restore();
       break;
@@ -763,7 +773,7 @@ function drawSceneFormula(
       // 1. Fractal Fern from the bottom
       ctx.save();
       ctx.translate(cx, cy + 120 * scale); // centered somewhat
-      const fernText = "FRACTAL BOTANICAL NATURE LEAF EMERALD GOLD GROW GARDEN";
+      const fernText = formulaTexts.floraFern;
       const fLength = lerp(60, 160, progress) * scale;
       const fFronds = Math.round(lerp(2, 8, progress));
       const fDepth = Math.round(lerp(2, 5, progress));
@@ -785,7 +795,7 @@ function drawSceneFormula(
       // 2. Cosmic Golden Ratio Spiral floating in center right
       ctx.save();
       ctx.translate(cx, cy - 80 * scale); // slightly offset above fern
-      const spiralText = "FIBONACCI PHI PERFECT GOLD ratio spiraling shell evolution design space";
+      const spiralText = formulaTexts.floraSpiral;
       const turns = lerp(1.5, 5, progress);
       const rate = lerp(0.12, 0.22, progress);
 
@@ -807,7 +817,7 @@ function drawSceneFormula(
       // 1. Above center Hive Hex Lattice (Honey color)
       ctx.save();
       ctx.translate(cx, cy - 100 * scale);
-      const hexText = "STRUCTURE HEX LATTICE COOPERATIVE SYMMETRY HIVE MIND ASSEMBLY";
+      const hexText = formulaTexts.floraHex;
       const iterations = Math.round(lerp(2, 4, progress));
       const hSize = lerp(110, 240, progress) * scale;
 
@@ -825,7 +835,7 @@ function drawSceneFormula(
       // 2. Mycelium branch network downward from hive base
       ctx.save();
       ctx.translate(cx, cy + 120 * scale);
-      const rootText = "MYCELIAL WEB NETWORKS dendritic transferring resources underground information";
+      const rootText = formulaTexts.floraMycelium;
       const rootLen = lerp(60, 140, progress) * scale;
       const rootBranches = Math.round(lerp(3, 8, progress));
       const rDepth = Math.round(lerp(2, 5, progress));
@@ -852,7 +862,7 @@ function drawSceneFormula(
       // 1. Butterfly attractors (chaotic flight paths)
       ctx.save();
       ctx.translate(cx, cy - 60 * scale);
-      const flyText = "CHAOS VECTOR ATTRACTOR BUTTERFLY TRACE FLIGHT FLUTTER SHIFT WINGS";
+      const flyText = formulaTexts.faunaButterfly;
       const rings = Math.round(lerp(1, 4, progress));
       const spacing = lerp(6, 11, progress);
 
@@ -865,14 +875,14 @@ function drawSceneFormula(
 
       if (flyResult.type === 'segments') {
         const placements = layoutTextOnSegments(flyText, flyResult.segments, 8.5 * scale, fontCanvas);
-        renderFormulaWithGlow(flyResult.segments, placements, 'rgba(168, 85, 247, 0.35)', 1.2, '#faf5ff', true);
+        renderFormulaWithGlow(flyResult.segments, placements, 'rgba(168, 85, 247, 0.35)', 1.2, '#faf5ff', true, false);
       }
       ctx.restore();
 
       // 2. Symmetric Ripple Flocking Wave
       ctx.save();
       ctx.translate(cx, cy + 120 * scale);
-      const waveText = "FLOCK BIRDS COHERENT MOTION schools of fish rhythmic flight fluid wave";
+      const waveText = formulaTexts.faunaWave;
       const waveSpeed = lerp(12, 42, progress);
       const offsetVal = lerp(8, 22, progress);
 
@@ -883,7 +893,7 @@ function drawSceneFormula(
 
       if (waveResult.type === 'segments') {
         const placements = layoutTextOnSegments(waveText, waveResult.segments, 8.5 * scale, fontCanvas);
-        renderFormulaWithGlow(waveResult.segments, placements, 'rgba(6, 182, 212, 0.32)', 1, '#ecfeff', false);
+        renderFormulaWithGlow(waveResult.segments, placements, 'rgba(6, 182, 212, 0.32)', 1, '#ecfeff', false, false);
       }
       ctx.restore();
       break;
@@ -893,7 +903,7 @@ function drawSceneFormula(
     case 10: {
       ctx.save();
       ctx.translate(cx, cy + 100 * scale); // base centered
-      const netText = "NEURAL SYNAPSE AWAKENING Awareness mind biosphere connected tree thinking snaps";
+      const netText = formulaTexts.networkNeural;
       
       const angle = lerp(16, 32, progress);
       const step = lerp(5, 9, progress) * scale;
