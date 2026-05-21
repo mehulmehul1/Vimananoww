@@ -1094,6 +1094,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         background: tone.bg,
         minHeight: mode === "scroll" ? scrollHeight : "100vh",
         position: "relative",
+        overscrollBehavior: "none",
+        WebkitOverflowScrolling: "touch",
       }}
     >
       {/* Fixed/Absolute UI container */}
@@ -1109,6 +1111,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           color: tone.ink,
           background: "transparent",
           zIndex: 10,
+          touchAction: "pan-y",
         }}
       >
         <canvas
@@ -1122,6 +1125,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             zIndex: 1,
             opacity: 1,
             transition: "opacity 1.2s ease",
+            touchAction: "pan-y",
           }}
         />
 

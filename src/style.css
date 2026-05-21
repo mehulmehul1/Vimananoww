@@ -36,6 +36,8 @@ body {
 
 body.act1-scroll-mode {
   overflow-y: auto;
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 #vimana-canvas {

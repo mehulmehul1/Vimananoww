@@ -73,10 +73,10 @@ function AppInner({ hash }: { hash: string }) {
 }
 
 export default function App() {
-  const [hash, setHash] = useState(window.location.hash || '#time');
+  const [hash, setHash] = useState(window.location.hash || '#scroll');
 
   useEffect(() => {
-    const onHashChange = () => setHash(window.location.hash || '#time');
+    const onHashChange = () => setHash(window.location.hash || '#scroll');
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);

@@ -6,7 +6,7 @@ import { Act1Scene } from '../scene1/Act1Scene';
  * This route previews the same instrument-canvas language used by live Act1.
  */
 export function DesignReview() {
-  const [mode, setMode] = useState<'scroll' | 'time'>('time');
+  const [mode, setMode] = useState<'scroll' | 'time'>('scroll');
 
   return (
     <div style={{
