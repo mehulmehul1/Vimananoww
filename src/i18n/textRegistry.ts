@@ -128,7 +128,25 @@ export const SCENE_CREATURE: Record<Language, SceneTexts> = {
   ta: { headline: 'உயிரினம்', body: 'ஒரு ஒட்டும் உயிரினம் ஆழத்திலிருந்து தோன்றுகிறது — அதன் இயற்கைப் பாதைகள் தோன்றும் உயிருடன் துடிக்கின்றன.', navLabel: '🫧 உயிரினம்' },
 };
 
-/** Scene 7: NETWORK */
+/** Scene 12: EMERGENCE / THE FIRING */
+export const SCENE_EMERGENCE: Record<Language, SceneTexts> = {
+  en: { headline: 'EMERGENCE', body: 'Neurons fire in dendritic patterns. The network awakens — not as one, but as many becoming one.', navLabel: '🧬 EMERGENCE' },
+  hi: { headline: 'उद्भव', body: 'तंत्रिकाएँ शाखान्वित प्रतिमानों में जलती हैं। जाल जागता है — एक के रूप में नहीं, बल्कि अनेक एक बनते हैं।', navLabel: '🧬 उद्भव' },
+  bn: { headline: 'উদ্ভব', body: 'স্নায়ু শাখাযুক্ত প্যাটার্নে জ্বলে ওঠে। নেটওয়ার্ক জেগে ওঠে — এক হিসেবে নয়, অনেক এক হয়ে যায়।', navLabel: '🧬 উদ্ভব' },
+  ur: { headline: 'ابھراؤ', body: 'اعصاب شاخوں والے پیٹرن میں جلتے ہیں۔ نیٹ ورک بیدار ہوتا ہے — ایک کے طور پر نہیں، بلکہ بہت سے ایک بنتے ہیں۔', navLabel: '🧬 ابھراؤ' },
+  ta: { headline: 'தோற்றம்', body: 'நரம்புகள் கிளைக்கும் வடிவங்களில் எரிகின்றன. வலையமைப்பு விழிக்கிறது — ஒன்றாக அல்ல, பல ஒன்றாகும்.', navLabel: '🧬 தோற்றம்' },
+};
+
+/** Scene 13: CONVERGENCE / THE MIND */
+export const SCENE_CONVERGENCE: Record<Language, SceneTexts> = {
+  en: { headline: 'CONVERGENCE', body: 'Left brain meets right. Geometry meets organics. The hemispheres converge — and consciousness sparks.', navLabel: '🧠 CONVERGENCE' },
+  hi: { headline: 'अभिसरण', body: 'बायाँ मस्तिष्क दाएँ से मिलता है। ज्यामिति जैविकता से मिलती है। गोलार्ध अभिसरित होते हैं — और चेतना चमकती है।', navLabel: '🧠 अभिसरण' },
+  bn: { headline: 'অভিসরণ', body: 'বাম মস্তিষ্ক ডানের সাথে মিলিত হয়। জ্যামিতি জৈবিকতার সাথে মিলিত হয়। গোলার্ধ অভিসরিত হয় — আর চেতনা জ্বলে ওঠে।', navLabel: '🧠 অভিসরণ' },
+  ur: { headline: 'اجتماع', body: 'بائیں دماغ دائیں سے ملتا ہے۔ جیومیٹری نامیاتیت سے ملتی ہے۔ نصف کرہ ملتے ہیں — اور شعور جلتا ہے۔', navLabel: '🧠 اجتماع' },
+  ta: { headline: 'ஒருங்கிணைவு', body: 'இடது மூளை வலதுடன் சந்திக்கிறது. வடிவியல் இயற்கையுடன் சந்திக்கிறது. அரைக்கோளங்கள் ஒருங்கிணைகின்றன — உணர்வு ஒளிர்கிறது.', navLabel: '🧠 ஒருங்கிணைவு' },
+};
+
+/** Scene 11: NETWORK */
 export const SCENE_NETWORK: Record<Language, SceneTexts> = {
   en: { headline: 'GLOBAL MIND.', body: 'The biosphere becomes a single integrated circuit. Synapses snap at tree tips in a global flash of neural awakening.', navLabel: 'NETWORK' },
   hi: { headline: 'वैश्विक मन।', body: 'जैवमंडल एकल एकीकृत परिपथ बन जाता है। तंत्रिका जागरण की वैश्विक चमक में स्नायु जुड़ते हैं।', navLabel: 'जाल' },
@@ -138,7 +156,7 @@ export const SCENE_NETWORK: Record<Language, SceneTexts> = {
 };
 
 /** All multilingual scene objects in order */
-const ALL_SCENES = [SCENE_VOID, SCENE_HUM, SCENE_WORD, SCENE_FIELD, SCENE_BLUEPRINT, SCENE_FERN, SCENE_TREE, SCENE_CRYSTAL, SCENE_BUTTERFLY, SCENE_WAVE, SCENE_CREATURE, SCENE_NETWORK];
+const ALL_SCENES = [SCENE_VOID, SCENE_HUM, SCENE_WORD, SCENE_FIELD, SCENE_BLUEPRINT, SCENE_FERN, SCENE_TREE, SCENE_CRYSTAL, SCENE_BUTTERFLY, SCENE_WAVE, SCENE_CREATURE, SCENE_NETWORK, SCENE_EMERGENCE, SCENE_CONVERGENCE];
 
 /** All scene texts indexed by scene number (12 scenes) */
 export const SCENE_TEXTS: Record<Language, SceneTexts[]> = {
@@ -184,6 +202,10 @@ export const FORMULA_TEXTS: Record<Language, {
   floraHex: string;
   /** Mycelium Roots */
   floraMycelium: string;
+  /** Firing / Dendritic cascade */
+  firingDendritic: string;
+  /** Convergence / Sierpinski + Spiral */
+  convergenceSpiral: string;
 }> = {
   en: {
     humCircle: 'VIMANA',
@@ -201,6 +223,8 @@ export const FORMULA_TEXTS: Record<Language, {
     floraSpiral: 'FIBONACCI PHI PERFECT GOLD ratio spiraling shell evolution design space',
     floraHex: 'STRUCTURE HEX LATTICE COOPERATIVE SYMMETRY HIVE MIND ASSEMBLY',
     floraMycelium: 'MYCELIAL WEB NETWORKS dendritic transferring resources underground information',
+    firingDendritic: 'FIRING NEURON CASCADE DENDRITE ELECTRIC PULSE IGNITION SPARK CHAIN REACTION AWAKENING',
+    convergenceSpiral: 'CONVERGENCE SPIRAL SIERPINSKI GOLDEN FIBONACCI LEFT RIGHT BRAIN HEMISPHERE UNITY',
   },
   hi: {
     humCircle: 'विमान',
@@ -218,6 +242,8 @@ export const FORMULA_TEXTS: Record<Language, {
     floraSpiral: 'फाइबोनैची स्वर्ण अनुपात सर्पिल शंख विकास डिज़ाइन',
     floraHex: 'संरचना षट्कोण जालक सहकारी सममिति मधुमक्खी मन',
     floraMycelium: 'माइसीलियल जाल नेटवर्क शाखान्वित संसाधन भूमिगत सूचना',
+    firingDendritic: 'जलती तंत्रिका प्रपात शाखान्वित विद्युत स्पंदन प्रज्वलन चेन प्रतिक्रिया जागरण',
+    convergenceSpiral: 'अभिसरण सर्पिल सियरपिंस्की स्वर्ण फाइबोनैची बायाँ दायाँ मस्तिष्क एकता',
   },
   bn: {
     humCircle: 'বিমান',
@@ -235,6 +261,8 @@ export const FORMULA_TEXTS: Record<Language, {
     floraSpiral: 'ফিবোনাচ্চি স্বর্ণ অনুপাত সর্পিল শঙ্খ বিবর্তন',
     floraHex: 'কাঠামো ষড়ভুজ জালক সমবায়ী সমমিতি মৌমাছি',
     floraMycelium: 'মাইসিলিয়াল জাল নেটওয়ার্ক শাখাযুক্ত সম্পদ ভূগর্ভ',
+    firingDendritic: 'জ্বলন্ত স্নায়ু জলপ্রপাত শাখাযুক্ত বিদ্যুৎ স্পন্দন জ্বালানি শৃঙ্খল প্রতিক্রিয়া',
+    convergenceSpiral: 'অভিসরণ সর্পিল সিয়ারপিনস্কি স্বর্ণ ফিবোনাচ্চি বাম ডান মস্তিষ্ক ঐক্য',
   },
   ur: {
     humCircle: 'وِمان',
@@ -252,6 +280,8 @@ export const FORMULA_TEXTS: Record<Language, {
     floraSpiral: 'فبونچی سنہری تناسب مارپیچ شیل ارتقا ڈیزائن',
     floraHex: 'ڈھانچہ شش ضلعی جال تعاونی مماثت شہد کی مکھی',
     floraMycelium: 'مائسیلیل جال نیٹ ورک شاخوں والا وسائل زیر زمین',
+    firingDendritic: 'جلتی عصبی آبشار شاخوں والی بجلی موج اور شعلہ زنجیر رد عمل بیداری',
+    convergenceSpiral: 'اجتماع مارپیچ سیرپنسکی سنہری فبونچی بائیں دائیں دماغ اتحاد',
   },
   ta: {
     humCircle: 'விமானம்',
@@ -269,6 +299,8 @@ export const FORMULA_TEXTS: Record<Language, {
     floraSpiral: 'பிபொனாச்சி தங்க விகிதம் சுருள் சிப்பி பரிணாமம் வடிவமைப்பு',
     floraHex: 'கட்டமைப்பு அறுகோண வலை கூட்டுறவு சீரொருமை தேனீ மனம்',
     floraMycelium: 'பூஞ்சை வலை வலையமைப்பு கிளைக்கும் வளங்கள் நிலத்தடி தகவல்',
+    firingDendritic: 'எரியும் நரம்பு நீர்வீழ்ச்சி கிளைக்கும் மின்சாரம் தூண்டுதல் தொடர் எதிர்வினை விழிப்பு',
+    convergenceSpiral: 'ஒருங்கிணைவு சுருள் சியர்பின்ஸ்கி தங்கம் பிபொனாச்சி இடது வலது மூளை ஒற்றுமை',
   },
 };
 

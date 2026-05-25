@@ -40,6 +40,16 @@ export interface SceneParams {
     iterations: number; stepLength: number; angle: number;
     fontSize: number; textScale: number; scale: number;
   };
+  firing: {
+    seedLength: number; branches: number; depth: number;
+    angleSpread: number; lengthDecay: number; symmetry: number;
+    fontSize: number; cascadeSpeed: number; scale: number;
+  };
+  convergence: {
+    sierpinskiSize: number; sierpinskiIter: number;
+    spiralTurns: number; spiralGrowth: number;
+    fontSize: number; scale: number;
+  };
 }
 
 // Extended params with global controls
@@ -62,6 +72,8 @@ export const DEFAULT_PARAMS: AllSceneParams = {
   symmetryWave: { amplitude: 40, frequency: 3, waves: 5, scale: 2.0 },
   slimy: { tentacles: 8, scale: 2.0 },
   network: { iterations: 4, stepLength: 12, angle: 30, fontSize: 7, textScale: 2.5, scale: 1 },
+  firing: { seedLength: 45, branches: 6, depth: 4, angleSpread: 0.55, lengthDecay: 0.72, symmetry: 6, fontSize: 6, cascadeSpeed: 1.5, scale: 1 },
+  convergence: { sierpinskiSize: 280, sierpinskiIter: 4, spiralTurns: 4, spiralGrowth: 0.1759, fontSize: 7, scale: 1 },
 };
 
 // ─── Scene → Param Group Mapping ─────────────────────────────────────
@@ -75,6 +87,8 @@ const SCENE_GROUPS: Record<number, string[]> = {
   5: ["fern", "lsystem", "crystal"],
   6: ["butterfly", "symmetryWave", "slimy"],
   7: ["network"],
+  8: ["firing"],
+  9: ["convergence"],
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -89,6 +103,8 @@ const GROUP_LABELS: Record<string, string> = {
   symmetryWave: "〰 Symmetry Wave",
   slimy: "🫧 Slimy Creature",
   network: "🧠 Neural Network",
+  firing: "⚡ Dendritic Firing",
+  convergence: "🧠 Hemispheric Convergence",
 };
 
 // ─── Save / Load ─────────────────────────────────────────────────────

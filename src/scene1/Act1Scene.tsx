@@ -18,6 +18,7 @@ import {
   butterflys,
   symmetryWave,
   lSystemTree,
+  sierpinskiTriangle,
   type LineSegment,
 } from "../pretext-editor/formulas";
 import { EnvironmentEngine } from "../EnvironmentEngine";
@@ -219,9 +220,35 @@ const SCENES: SceneDef[] = [
     origin: "global biosphere",
     duration: 6,
   },
+  {
+    phaseId: "12",
+    navLabel: "🧬 EMERGENCE",
+    headline: "EMERGENCE",
+    body: "Neurons fire in dendritic patterns. The network awakens — not as one, but as many becoming one.",
+    formula: "dendriticCrystal / neural",
+    status: "neural awakening",
+    frequency: "1111.11 Hz",
+    amplitude: "1.000",
+    coordinates: "13 00 00.00 N / 13 00 00.00 E",
+    origin: "neural network",
+    duration: 7,
+  },
+  {
+    phaseId: "13",
+    navLabel: "🧠 CONVERGENCE",
+    headline: "CONVERGENCE",
+    body: "Left brain meets right. Geometry meets organics. The hemispheres converge — and consciousness sparks.",
+    formula: "sierpinski + lSystem / hemispheres",
+    status: "consciousness",
+    frequency: "1333.33 Hz",
+    amplitude: "1.000",
+    coordinates: "13 08 00.00 N / 13 08 00.00 E",
+    origin: "hemispheric convergence",
+    duration: 8,
+  },
 ];
 
-const TOTAL_SCENES = 4; // Temporarily capped at scene 3 (Field). Full SCENES array preserved for re-enable.
+const TOTAL_SCENES = SCENES.length; // All 12 scenes active
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -994,7 +1021,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // === NETWORK (scene 11) ===
+      // === NETWORK (scene 11) — lSystemTree with connection sparks ===
 
       if (renderScene === 11) {
         const netP = theatre.network;
@@ -1026,7 +1053,52 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             true,
             netP.fontSize * scale,
           );
+
+          // Connection sparks — find branch tips and connect nearby ones
+          if (progress > 0.4) {
+            const connectProgress = (progress - 0.4) / 0.6;
+            // Collect branch endpoints (tips)
+            const tips: Array<{ x: number; y: number }> = [];
+            for (const seg of result.segments) {
+              tips.push({ x: seg.x2, y: seg.y2 });
+            }
+
+            // Connect tips that are within a threshold distance
+            const threshold = lerp(120, 50, connectProgress) * scale;
+            ctx.save();
+            for (let i = 0; i < tips.length; i++) {
+              for (let j = i + 1; j < tips.length; j++) {
+                const dx = tips[i].x - tips[j].x;
+                const dy = tips[i].y - tips[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < threshold) {
+                  const alpha = (1 - dist / threshold) * connectProgress * 0.6;
+                  ctx.beginPath();
+                  ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
+                  ctx.lineWidth = 1 * scale;
+                  ctx.moveTo(tips[i].x, tips[i].y);
+                  ctx.lineTo(tips[j].x, tips[j].y);
+                  ctx.stroke();
+
+                  // Spark at junction midpoint
+                  if (alpha > 0.3) {
+                    const mx = (tips[i].x + tips[j].x) / 2;
+                    const my = (tips[i].y + tips[j].y) / 2;
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.shadowColor = "#818cf8";
+                    ctx.shadowBlur = 12 * scale;
+                    ctx.arc(mx, my, (2 + alpha * 3) * scale, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                  }
+                }
+              }
+            }
+            ctx.restore();
+          }
         }
+        // Crescendo sparks
         if (progress > 0.88) {
           ctx.fillStyle = "#ffffff";
           ctx.shadowColor = "#6366f1";
@@ -1041,6 +1113,228 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             ctx.fill();
           }
         }
+        ctx.restore();
+      }
+
+      // === EMERGENCE / THE FIRING (scene 12) — 3x dendriticCrystal cascade ===
+      if (renderScene === 12) {
+        const fireP = theatre.firing;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(fireP.scale, fireP.scale);
+
+        const fireText = formulaTexts.firingDendritic;
+        const cascade = progress * fireP.cascadeSpeed;
+
+        // 3 overlapping crystals at different rotations, firing in sequence
+        for (let ci = 0; ci < 3; ci++) {
+          const crystalProgress = clamp01((cascade - ci * 0.25) / 0.5);
+          if (crystalProgress <= 0) continue;
+
+          const rotation = (ci / 3) * Math.PI * 2 + t * 0.1;
+          ctx.save();
+          ctx.rotate(rotation);
+
+          const result = dendriticCrystal(fireText, {
+            seedLength: fireP.seedLength * scale,
+            branches: fireP.branches,
+            depth: fireP.depth,
+            angleSpread: fireP.angleSpread,
+            lengthDecay: fireP.lengthDecay,
+            symmetry: fireP.symmetry,
+          }, t);
+
+          if (result.type === "segments") {
+            // Only render segments up to crystalProgress
+            const visibleCount = Math.floor(result.segments.length * crystalProgress);
+            const visibleSegs = result.segments.slice(0, visibleCount);
+
+            const placements = layoutTextOnSegments(
+              fireText,
+              visibleSegs,
+              fireP.fontSize * scale,
+              currentFontFamily,
+            );
+
+            // Color shifts per crystal: cyan → purple → white
+            const colors = ["rgba(33, 199, 223, 0.6)", "rgba(199, 192, 252, 0.6)", "rgba(242, 240, 236, 0.6)"];
+            const textColors = ["#21c7df", "#c7c0fc", "#f2f0ec"];
+
+            renderFormulaWithGlow(
+              visibleSegs,
+              placements,
+              colors[ci],
+              1.2 + crystalProgress * 0.8,
+              textColors[ci],
+              true,
+              fireP.fontSize * scale,
+            );
+
+            // Pulse wave — bright dots traveling along segments
+            if (crystalProgress > 0.3) {
+              const pulsePos = ((t * 2 + ci * 0.7) % 1) * visibleSegs.length;
+              const pulseIdx = Math.floor(pulsePos);
+              if (pulseIdx < visibleSegs.length) {
+                const seg = visibleSegs[pulseIdx];
+                ctx.beginPath();
+                ctx.fillStyle = "#ffffff";
+                ctx.shadowColor = textColors[ci];
+                ctx.shadowBlur = 18 * scale;
+                ctx.arc(seg.x2, seg.y2, (3 + Math.sin(t * 8) * 1.5) * scale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+              }
+            }
+          }
+          ctx.restore();
+        }
+
+        // Central flash at crescendo
+        if (progress > 0.85) {
+          const flashAlpha = (progress - 0.85) / 0.15;
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha * 0.8})`;
+          ctx.shadowColor = "#ffffff";
+          ctx.shadowBlur = 40 * scale * flashAlpha;
+          ctx.arc(0, 0, (8 + flashAlpha * 20) * scale, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+
+        ctx.restore();
+      }
+
+      // === CONVERGENCE / THE MIND (scene 13) — sierpinski left + goldenSpiral right ===
+      if (renderScene === 13) {
+        const convP = theatre.convergence;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(convP.scale, convP.scale);
+
+        const convText = formulaTexts.convergenceSpiral;
+
+        // Left hemisphere: sierpinskiTriangle (geometric, precise, cold)
+        const leftProgress = easeOutCubic(clamp01(progress * 1.4));
+        if (leftProgress > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(-400 * scale, -400 * scale, 400 * scale, 800 * scale);
+          ctx.clip();
+
+          const sierResult = sierpinskiTriangle(convText, {
+            size: convP.sierpinskiSize * scale,
+            iterations: convP.sierpinskiIter,
+          }, t);
+
+          if (sierResult.type === "segments") {
+            const visibleCount = Math.floor(sierResult.segments.length * leftProgress);
+            const visibleSegs = sierResult.segments.slice(0, visibleCount);
+            const placements = layoutTextOnSegments(convText, visibleSegs, convP.fontSize * scale, currentFontFamily);
+
+            renderFormulaWithGlow(
+              visibleSegs,
+              placements,
+              "rgba(99, 102, 241, 0.5)",  // indigo — cold, geometric
+              1.0,
+              "#818cf8",
+              true,
+              convP.fontSize * scale,
+            );
+          }
+          ctx.restore();
+        }
+
+        // Right hemisphere: goldenSpiral (organic, warm, chaotic)
+        const rightProgress = easeOutCubic(clamp01((progress - 0.1) * 1.4));
+        if (rightProgress > 0) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, -400 * scale, 400 * scale, 800 * scale);
+          ctx.clip();
+
+          const spiralResult = goldenSpiral(convText, {
+            turns: convP.spiralTurns,
+            growthRate: convP.spiralGrowth,
+          }, t);
+
+          if (spiralResult.type === "segments") {
+            const visibleCount = Math.floor(spiralResult.segments.length * rightProgress);
+            const visibleSegs = spiralResult.segments.slice(0, visibleCount);
+            const placements = layoutTextOnSegments(convText, visibleSegs, convP.fontSize * scale, currentFontFamily);
+
+            renderFormulaWithGlow(
+              visibleSegs,
+              placements,
+              "rgba(249, 115, 22, 0.5)",  // orange — warm, organic
+              1.0,
+              "#fb923c",
+              true,
+              convP.fontSize * scale,
+            );
+          }
+          ctx.restore();
+        }
+
+        // Central fissure — thin bright line where hemispheres meet
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 + progress * 0.25})`;
+        ctx.lineWidth = 1 * scale;
+        ctx.moveTo(0, -350 * scale);
+        ctx.lineTo(0, 350 * scale);
+        ctx.stroke();
+
+        // Where they overlap — the convergence dot (callback to Scene 0)
+        if (progress > 0.6) {
+          const dotProgress = (progress - 0.6) / 0.4;
+          const dotSize = (2 + dotProgress * 6) * scale;
+
+          // Synaptic flashes along the fissure
+          for (let i = 0; i < 5; i++) {
+            const flashY = (-200 + i * 100) * scale;
+            const flashPhase = Math.sin(t * 3 + i * 1.2) * 0.5 + 0.5;
+            if (flashPhase > 0.7) {
+              ctx.beginPath();
+              ctx.fillStyle = `rgba(255, 255, 255, ${(flashPhase - 0.7) / 0.3 * dotProgress})`;
+              ctx.shadowColor = "#ffffff";
+              ctx.shadowBlur = 12 * scale;
+              ctx.arc(0, flashY, 2 * scale, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+
+          // The bright dot — writes VIMANA textCircle
+          ctx.beginPath();
+          ctx.fillStyle = `rgba(255, 255, 255, ${dotProgress})`;
+          ctx.shadowColor = "#ffffff";
+          ctx.shadowBlur = 24 * scale * dotProgress;
+          ctx.arc(0, 0, dotSize, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // VIMANA textCircle around the dot
+          if (dotProgress > 0.5) {
+            const circleAlpha = (dotProgress - 0.5) / 0.5;
+            const vimanaText = VIMANA_WORD[lang] || "VIMANA";
+            const radius = 30 * scale * dotProgress;
+            ctx.save();
+            ctx.globalAlpha = circleAlpha * 0.7;
+            ctx.font = `${getFontForLanguage(lang, 10 * scale)} ${FONT_CANVAS_DEFAULT}`;
+            ctx.fillStyle = "#ffffff";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            const chars = vimanaText.split("");
+            for (let i = 0; i < chars.length; i++) {
+              const angle = (i / chars.length) * Math.PI * 2 - Math.PI / 2 + t * 0.3;
+              ctx.save();
+              ctx.translate(Math.cos(angle) * radius, Math.sin(angle) * radius);
+              ctx.rotate(angle + Math.PI / 2);
+              ctx.fillText(chars[i], 0, 0);
+              ctx.restore();
+            }
+            ctx.restore();
+          }
+        }
+
         ctx.restore();
       }
 
