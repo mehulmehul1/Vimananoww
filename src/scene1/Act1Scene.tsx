@@ -1145,30 +1145,51 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           }, t);
 
           if (result.type === "segments") {
-            // Only render segments up to crystalProgress
             const visibleCount = Math.floor(result.segments.length * crystalProgress);
             const visibleSegs = result.segments.slice(0, visibleCount);
 
-            const placements = layoutTextOnSegments(
-              fireText,
-              visibleSegs,
-              fireP.fontSize * scale,
-              currentFontFamily,
-            );
-
-            // Color shifts per crystal: cyan → purple → white
+            // Draw crystal lines with glow
             const colors = ["rgba(33, 199, 223, 0.6)", "rgba(199, 192, 252, 0.6)", "rgba(242, 240, 236, 0.6)"];
             const textColors = ["#21c7df", "#c7c0fc", "#f2f0ec"];
 
-            renderFormulaWithGlow(
-              visibleSegs,
-              placements,
-              colors[ci],
-              1.2 + crystalProgress * 0.8,
-              textColors[ci],
-              true,
-              fireP.fontSize * scale,
-            );
+            ctx.save();
+            ctx.shadowColor = colors[ci];
+            ctx.shadowBlur = 12 * scale;
+            ctx.strokeStyle = colors[ci];
+            ctx.lineWidth = 1.2 + crystalProgress * 0.8;
+            ctx.beginPath();
+            for (const seg of visibleSegs) {
+              ctx.moveTo(seg.x1, seg.y1);
+              ctx.lineTo(seg.x2, seg.y2);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // Text on crystal branches — visible and readable
+            ctx.save();
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.direction = textDirection(lang);
+            const langFont = getFontForLanguage(lang, fireP.fontSize * scale);
+            for (let si = 0; si < visibleSegs.length; si += 3) {
+              const seg = visibleSegs[si];
+              const mx = (seg.x1 + seg.x2) / 2;
+              const my = (seg.y1 + seg.y2) / 2;
+              const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
+              const wordIdx = si % fireText.split(" ").length;
+              const word = fireText.split(" ")[wordIdx] || "";
+              if (!word.trim()) continue;
+              ctx.save();
+              ctx.translate(mx, my);
+              ctx.rotate(angle);
+              ctx.font = langFont;
+              ctx.globalAlpha = 0.6 + crystalProgress * 0.3;
+              ctx.fillStyle = textColors[ci];
+              ctx.fillText(word, 0, 0);
+              ctx.restore();
+            }
+            ctx.restore();
 
             // Pulse wave — bright dots traveling along segments
             if (crystalProgress > 0.3) {
@@ -1204,7 +1225,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // === CONVERGENCE / THE MIND (scene 13) — sierpinski left + goldenSpiral right ===
+      // === CONVERGENCE / THE MIND (scene 13) — brain clip, sierpinski left, lSystem right ===
       if (renderScene === 13) {
         const convP = theatre.convergence;
         ctx.save();
@@ -1213,12 +1234,86 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
         const convText = formulaTexts.convergenceSpiral;
 
-        // Left hemisphere: sierpinskiTriangle (geometric, precise, cold)
+        // Build brain-shaped clip path — two hemispheres with cortical folds
+        const brainW = 320 * scale;
+        const brainH = 280 * scale;
+        const foldDepth = 25 * scale; // cortical fold depth
+        const fissureGap = 8 * scale; // central fissure width
+
+        const brainPath = new Path2D();
+
+        // Left hemisphere (clockwise from top-center)
+        brainPath.moveTo(-fissureGap, -brainH * 0.85);
+        // Top-left curve — cortical folds (wrinkles)
+        brainPath.bezierCurveTo(
+          -brainW * 0.3, -brainH * 0.95,   // control 1
+          -brainW * 0.7, -brainH * 0.7,    // control 2
+          -brainW * 0.85, -brainH * 0.3,   // end
+        );
+        // Left fold 1
+        brainPath.bezierCurveTo(
+          -brainW * 0.9 + foldDepth, -brainH * 0.15,
+          -brainW * 0.92 - foldDepth * 0.5, brainH * 0.05,
+          -brainW * 0.88, brainH * 0.2,
+        );
+        // Left fold 2 — bottom curve
+        brainPath.bezierCurveTo(
+          -brainW * 0.82 + foldDepth * 0.7, brainH * 0.45,
+          -brainW * 0.5 - foldDepth * 0.3, brainH * 0.7,
+          -brainW * 0.2, brainH * 0.85,
+        );
+        // Bottom-left to center
+        brainPath.bezierCurveTo(
+          -brainW * 0.08, brainH * 0.9,
+          -fissureGap, brainH * 0.6,
+          -fissureGap, brainH * 0.1,
+        );
+        brainPath.closePath();
+
+        // Right hemisphere (counter-clockwise from top-center)
+        brainPath.moveTo(fissureGap, -brainH * 0.85);
+        // Top-right curve
+        brainPath.bezierCurveTo(
+          brainW * 0.3, -brainH * 0.95,
+          brainW * 0.7, -brainH * 0.7,
+          brainW * 0.85, -brainH * 0.3,
+        );
+        // Right fold 1
+        brainPath.bezierCurveTo(
+          brainW * 0.9 - foldDepth, -brainH * 0.15,
+          brainW * 0.92 + foldDepth * 0.5, brainH * 0.05,
+          brainW * 0.88, brainH * 0.2,
+        );
+        // Right fold 2 — bottom curve
+        brainPath.bezierCurveTo(
+          brainW * 0.82 - foldDepth * 0.7, brainH * 0.45,
+          brainW * 0.5 + foldDepth * 0.3, brainH * 0.7,
+          brainW * 0.2, brainH * 0.85,
+        );
+        // Bottom-right to center
+        brainPath.bezierCurveTo(
+          brainW * 0.08, brainH * 0.9,
+          fissureGap, brainH * 0.6,
+          fissureGap, brainH * 0.1,
+        );
+        brainPath.closePath();
+
+        // Fade-in: brain grows from nothing
+        const brainAlpha = easeOutCubic(clamp01(progress * 1.5));
+        if (brainAlpha <= 0) { ctx.restore(); return; }
+
+        ctx.save();
+        ctx.globalAlpha = brainAlpha;
+
+        // Clip everything to the brain shape
+        ctx.clip(brainPath);
+
+        // === LEFT HEMISPHERE — sierpinskiTriangle (geometric, indigo) ===
         const leftProgress = easeOutCubic(clamp01(progress * 1.4));
         if (leftProgress > 0) {
           ctx.save();
           ctx.beginPath();
-          ctx.rect(-400 * scale, -400 * scale, 400 * scale, 800 * scale);
+          ctx.rect(-brainW - 10, -brainH - 10, brainW + 10, brainH * 2 + 20);
           ctx.clip();
 
           const sierResult = sierpinskiTriangle(convText, {
@@ -1229,95 +1324,174 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           if (sierResult.type === "segments") {
             const visibleCount = Math.floor(sierResult.segments.length * leftProgress);
             const visibleSegs = sierResult.segments.slice(0, visibleCount);
-            const placements = layoutTextOnSegments(convText, visibleSegs, convP.fontSize * scale, currentFontFamily);
 
-            renderFormulaWithGlow(
-              visibleSegs,
-              placements,
-              "rgba(99, 102, 241, 0.5)",  // indigo — cold, geometric
-              1.0,
-              "#818cf8",
-              true,
-              convP.fontSize * scale,
-            );
+            // Lines
+            ctx.save();
+            ctx.shadowColor = "rgba(99, 102, 241, 0.6)";
+            ctx.shadowBlur = 10 * scale;
+            ctx.strokeStyle = "rgba(99, 102, 241, 0.5)";
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            for (const seg of visibleSegs) {
+              ctx.moveTo(seg.x1, seg.y1);
+              ctx.lineTo(seg.x2, seg.y2);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // Text on sierpinski edges
+            ctx.save();
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.direction = textDirection(lang);
+            const langFont = getFontForLanguage(lang, convP.fontSize * scale);
+            for (let si = 0; si < visibleSegs.length; si += 4) {
+              const seg = visibleSegs[si];
+              const mx = (seg.x1 + seg.x2) / 2;
+              const my = (seg.y1 + seg.y2) / 2;
+              const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
+              const words = convText.split(" ");
+              const word = words[si % words.length] || "";
+              if (!word.trim()) continue;
+              ctx.save();
+              ctx.translate(mx, my);
+              ctx.rotate(angle);
+              ctx.font = langFont;
+              ctx.globalAlpha = 0.5 + leftProgress * 0.3;
+              ctx.fillStyle = "#818cf8";
+              ctx.fillText(word, 0, 0);
+              ctx.restore();
+            }
+            ctx.restore();
           }
           ctx.restore();
         }
 
-        // Right hemisphere: goldenSpiral (organic, warm, chaotic)
+        // === RIGHT HEMISPHERE — lSystemTree (organic, amber) ===
         const rightProgress = easeOutCubic(clamp01((progress - 0.1) * 1.4));
         if (rightProgress > 0) {
           ctx.save();
           ctx.beginPath();
-          ctx.rect(0, -400 * scale, 400 * scale, 800 * scale);
+          ctx.rect(0, -brainH - 10, brainW + 10, brainH * 2 + 20);
           ctx.clip();
 
-          const spiralResult = goldenSpiral(convText, {
-            turns: convP.spiralTurns,
-            growthRate: convP.spiralGrowth,
-          }, t);
+          const treeAngle = lerp(18, 28, rightProgress);
+          const treeStep = lerp(4, 8, rightProgress) * scale;
+          const treeIter = Math.round(lerp(2, 4, rightProgress));
 
-          if (spiralResult.type === "segments") {
-            const visibleCount = Math.floor(spiralResult.segments.length * rightProgress);
-            const visibleSegs = spiralResult.segments.slice(0, visibleCount);
-            const placements = layoutTextOnSegments(convText, visibleSegs, convP.fontSize * scale, currentFontFamily);
+          const treeResult = lSystemTree(
+            convText,
+            { angle: treeAngle, stepLength: treeStep, iterations: treeIter, startAngle: -90 },
+            t,
+          );
 
-            renderFormulaWithGlow(
-              visibleSegs,
-              placements,
-              "rgba(249, 115, 22, 0.5)",  // orange — warm, organic
-              1.0,
-              "#fb923c",
-              true,
-              convP.fontSize * scale,
-            );
+          if (treeResult.type === "segments") {
+            const visibleCount = Math.floor(treeResult.segments.length * rightProgress);
+            const visibleSegs = treeResult.segments.slice(0, visibleCount);
+
+            // Lines
+            ctx.save();
+            ctx.shadowColor = "rgba(251, 146, 60, 0.6)";
+            ctx.shadowBlur = 10 * scale;
+            ctx.strokeStyle = "rgba(249, 115, 22, 0.5)";
+            ctx.lineWidth = 1.0;
+            ctx.beginPath();
+            for (const seg of visibleSegs) {
+              ctx.moveTo(seg.x1, seg.y1);
+              ctx.lineTo(seg.x2, seg.y2);
+            }
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            // Text on tree branches
+            ctx.save();
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.direction = textDirection(lang);
+            const langFont = getFontForLanguage(lang, convP.fontSize * scale);
+            for (let si = 0; si < visibleSegs.length; si += 3) {
+              const seg = visibleSegs[si];
+              const mx = (seg.x1 + seg.x2) / 2;
+              const my = (seg.y1 + seg.y2) / 2;
+              const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
+              const words = convText.split(" ");
+              const word = words[si % words.length] || "";
+              if (!word.trim()) continue;
+              ctx.save();
+              ctx.translate(mx, my);
+              ctx.rotate(angle);
+              ctx.font = langFont;
+              ctx.globalAlpha = 0.5 + rightProgress * 0.3;
+              ctx.fillStyle = "#fb923c";
+              ctx.fillText(word, 0, 0);
+              ctx.restore();
+            }
+            ctx.restore();
           }
           ctx.restore();
         }
 
-        // Central fissure — thin bright line where hemispheres meet
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 + progress * 0.25})`;
-        ctx.lineWidth = 1 * scale;
-        ctx.moveTo(0, -350 * scale);
-        ctx.lineTo(0, 350 * scale);
-        ctx.stroke();
-
-        // Where they overlap — the convergence dot (callback to Scene 0)
-        if (progress > 0.6) {
-          const dotProgress = (progress - 0.6) / 0.4;
-          const dotSize = (2 + dotProgress * 6) * scale;
-
-          // Synaptic flashes along the fissure
-          for (let i = 0; i < 5; i++) {
-            const flashY = (-200 + i * 100) * scale;
-            const flashPhase = Math.sin(t * 3 + i * 1.2) * 0.5 + 0.5;
-            if (flashPhase > 0.7) {
+        // === SYNAPTIC FLASHES along the central fissure ===
+        if (progress > 0.4) {
+          const flashIntensity = (progress - 0.4) / 0.6;
+          for (let i = 0; i < 8; i++) {
+            const fy = (-brainH * 0.7 + i * brainH * 0.2);
+            const phase = Math.sin(t * 4 + i * 1.5) * 0.5 + 0.5;
+            if (phase > 0.6) {
+              const flashAlpha = (phase - 0.6) / 0.4 * flashIntensity;
+              // Left flash (indigo)
               ctx.beginPath();
-              ctx.fillStyle = `rgba(255, 255, 255, ${(flashPhase - 0.7) / 0.3 * dotProgress})`;
-              ctx.shadowColor = "#ffffff";
-              ctx.shadowBlur = 12 * scale;
-              ctx.arc(0, flashY, 2 * scale, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(99, 102, 241, ${flashAlpha * 0.7})`;
+              ctx.shadowColor = "#6366f1";
+              ctx.shadowBlur = 8 * scale;
+              ctx.arc(-fissureGap * 0.5, fy, (2 + phase * 2) * scale, 0, Math.PI * 2);
               ctx.fill();
+              // Right flash (amber)
+              ctx.beginPath();
+              ctx.fillStyle = `rgba(251, 146, 60, ${flashAlpha * 0.7})`;
+              ctx.shadowColor = "#fb923c";
+              ctx.arc(fissureGap * 0.5, fy, (2 + phase * 2) * scale, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.shadowBlur = 0;
             }
           }
+        }
 
-          // The bright dot — writes VIMANA textCircle
+        // Central fissure line — thin bright seam
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + progress * 0.3})`;
+        ctx.lineWidth = 1 * scale;
+        ctx.setLineDash([4 * scale, 6 * scale]);
+        ctx.moveTo(0, -brainH * 0.75);
+        ctx.lineTo(0, brainH * 0.8);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.restore(); // end globalAlpha
+
+        // === CONVERGENCE DOT — the mind awakening (outside clip) ===
+        if (progress > 0.65) {
+          const dotProgress = (progress - 0.65) / 0.35;
+          const dotSize = (2 + dotProgress * 8) * scale;
+
+          // Bright dot
           ctx.beginPath();
           ctx.fillStyle = `rgba(255, 255, 255, ${dotProgress})`;
           ctx.shadowColor = "#ffffff";
-          ctx.shadowBlur = 24 * scale * dotProgress;
+          ctx.shadowBlur = 30 * scale * dotProgress;
           ctx.arc(0, 0, dotSize, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
 
-          // VIMANA textCircle around the dot
-          if (dotProgress > 0.5) {
-            const circleAlpha = (dotProgress - 0.5) / 0.5;
+          // VIMANA textCircle — "the mind naming what it built"
+          if (dotProgress > 0.4) {
+            const circleAlpha = (dotProgress - 0.4) / 0.6;
             const vimanaText = VIMANA_WORD[lang] || "VIMANA";
-            const radius = 30 * scale * dotProgress;
+            const radius = (20 + dotProgress * 25) * scale;
             ctx.save();
-            ctx.globalAlpha = circleAlpha * 0.7;
+            ctx.globalAlpha = circleAlpha * 0.8;
             ctx.font = `${getFontForLanguage(lang, 10 * scale)} ${FONT_CANVAS_DEFAULT}`;
             ctx.fillStyle = "#ffffff";
             ctx.textAlign = "center";
