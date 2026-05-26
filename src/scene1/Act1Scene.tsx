@@ -248,7 +248,7 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = SCENES.length; // All 12 scenes active
+const TOTAL_SCENES = 4; // Netlify deploy: scenes 0-3 only (Void → Field). Full array preserved.
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
