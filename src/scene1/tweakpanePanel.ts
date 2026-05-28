@@ -50,6 +50,32 @@ export interface SceneParams {
     spiralTurns: number; spiralGrowth: number;
     fontSize: number; scale: number;
   };
+  mycelial: {
+    branches: number; depth: number; stepLength: number;
+    angleSpread: number; lengthDecay: number; reconnectDist: number;
+    fontSize: number; scale: number;
+  };
+  cortical: {
+    f: number; k: number; iterations: number; resolution: number;
+    contourLevel: number; fontSize: number; scale: number;
+  };
+  brainMesh: {
+    foldDepth: number; foldFreq: number; fissureDepth: number;
+    resU: number; resV: number; scale: number;
+    rotSpeed: number; tiltX: number; tiltY: number;
+    fontSize: number; autoRotate: boolean; brainRenderer: number;
+  };
+  globalCircuit: {
+    rings: number; meridians: number; connections: number;
+    nodeCount: number; scale: number; rotSpeed: number; tiltX: number;
+    fontSize: number;
+  };
+  myceliumNetwork: {
+    nodes: number; branches: number; depth: number;
+    stepLength: number; angleSpread: number; lengthDecay: number;
+    reconnectDist: number; spread: number;
+    fontSize: number; scale: number;
+  };
 }
 
 // Extended params with global controls
@@ -74,6 +100,11 @@ export const DEFAULT_PARAMS: AllSceneParams = {
   network: { iterations: 4, stepLength: 12, angle: 30, fontSize: 7, textScale: 2.5, scale: 1 },
   firing: { seedLength: 45, branches: 6, depth: 4, angleSpread: 0.55, lengthDecay: 0.72, symmetry: 6, fontSize: 6, cascadeSpeed: 1.5, scale: 1 },
   convergence: { sierpinskiSize: 280, sierpinskiIter: 4, spiralTurns: 4, spiralGrowth: 0.1759, fontSize: 7, scale: 1 },
+  mycelial: { branches: 6, depth: 4, stepLength: 60, angleSpread: 0.6, lengthDecay: 0.65, reconnectDist: 80, fontSize: 7, scale: 1 },
+  cortical: { f: 0.035, k: 0.065, iterations: 3000, resolution: 80, contourLevel: 0.25, fontSize: 6, scale: 1 },
+  brainMesh: { foldDepth: 0.18, foldFreq: 5, fissureDepth: 0.22, resU: 18, resV: 16, scale: 1, rotSpeed: 0.04, tiltX: 0.35, tiltY: 0, fontSize: 7, autoRotate: true, brainRenderer: 0 },
+  globalCircuit: { rings: 10, meridians: 14, connections: 30, nodeCount: 40, scale: 1, rotSpeed: 0.15, tiltX: 0.35, fontSize: 7 },
+  myceliumNetwork: { nodes: 5, branches: 5, depth: 3, stepLength: 50, angleSpread: 0.55, lengthDecay: 0.62, reconnectDist: 65, spread: 220, fontSize: 7, scale: 1 },
 };
 
 // ─── Scene → Param Group Mapping ─────────────────────────────────────
@@ -89,6 +120,9 @@ const SCENE_GROUPS: Record<number, string[]> = {
   7: ["network"],
   8: ["firing"],
   9: ["convergence"],
+  10: ["mycelial"],
+  11: ["myceliumNetwork"],
+  12: ["brainMesh"],
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -105,6 +139,11 @@ const GROUP_LABELS: Record<string, string> = {
   network: "🧠 Neural Network",
   firing: "⚡ Dendritic Firing",
   convergence: "🧠 Hemispheric Convergence",
+  mycelial: "🍄 Mycelial Web",
+  cortical: "🧠 Cortical Folds",
+  brainMesh: "🧠 3D Brain Mesh",
+  globalCircuit: "🌐 Global Circuit",
+  myceliumNetwork: "🍄 Mycelium Network",
 };
 
 // ─── Save / Load ─────────────────────────────────────────────────────
@@ -232,6 +271,8 @@ export function createTweakpane(
         if (typeof val === "number") {
           const { min, max, step } = getRange(key, val);
           folder.addBinding(groupParams, key, { min, max, step, label: key });
+        } else if (typeof val === "boolean") {
+          folder.addBinding(groupParams, key, { label: key });
         }
       }
       currentBlades.push(folder);

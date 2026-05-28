@@ -19,12 +19,216 @@ import {
   symmetryWave,
   lSystemTree,
   sierpinskiTriangle,
+  corticalFold,
+  mycelialWeb,
+  brainMesh,
+  brainSurfacePoint,
+  brainStreamlines,
+  brainContourText,
+  globalCircuit,
+  myceliumNetwork,
+  getCompiledPaths,
+  BRAIN_WORDS,
+  BRAIN_PATHS,
+  wordColor,
   type LineSegment,
 } from "../pretext-editor/formulas";
 import { EnvironmentEngine } from "../EnvironmentEngine";
 import { layoutTextOnSegments, type LinePlacement } from "./textLayout";
 
 import { createTweakpane, DEFAULT_PARAMS, type AllSceneParams } from "./tweakpanePanel";
+
+// ─── Brain SVG path data (from Arrow SVG) ───────────────────────────────
+
+const BRAIN_SVG_PATHS: string[] = [
+  "m23.6 40.6c3.4-1.1 6.1 0.9 9.4 1.4s4.6 0.2 9 1.3c8.8 2.2 13.7-1.3 19.4-2.8",
+  "m54.7 7.8c4.9-2.2 11.8-4.4 18.3-4.8 5.9-0.3 11 0.4 18.4-0.3",
+  "m104.7 4c7.7 0 11.9-2.1 16.9-1.6 5.1 0.5 8.6 6.2 2.3 8.7-1.5 0.5-5.8 0.5-5.8 0.5",
+  "m65.3 8c5.3-1.4 10.8-2.6 16.3-2.3 5.8 0.4 7.3 0.2 12.5-0.7 1.8-0.4 5.5-0.9 5.5-0.9",
+  "m67.1 11c7.8-1.5 16.3-2.5 25.8-1l7 1.1 2.2 0.4",
+  "m95.6 13.4c5.8 0.5 10.3 2.6 20.5 1.2 5-0.7 8-1.5 15.5-1.2",
+  "m139.6 10.5c5-2.5 9.3-1.5 13.5 2.1 6 5.3 2 12.8-4.7 12.4-3.2-0.1-7.4-4.4-9-4.4",
+  "m147.6 27.6c4.8 1.4 6.9-3.1 11.4-3.5 5.1-0.5 9.9 5.3 6.5 11.5-1.6 2.5-4 5-7.4 4",
+  "m173.6 36.6c-3.5-1-6.1 0.9-7.2 2.4-2.8 3.5-6.3 4-8.8 4.4-5.5 1-9.2 2.6-19.2 2.7",
+  "m188.1 65.1c2.8-3.6 0.5-8.7-2-12.2-2-2.4-5.5-3-8.6-0.9-3.9 2.5-6.6 3.1-10.6 1.9",
+  "m195.5 78.4c3.5 3.6 5 13 3 19.1-1 4 3.1 13-4 15.6",
+  "m186.4 115c-8-0.5-10.9-5.5-9-12.1 1-3.4 5.5-3.8 4.6-9.8v-5.5",
+  "m166.6 133c3.3 2.6 9 2.6 11.5-3 1.4-3.4 6.5-2.6 9-6.9 0.8-4.6-3.2-8.1-6.5-5.1",
+  "m146.4 152.9c8.2-0.5 11-11.4 3.5-16.4-2.3-1.4-3.3-0.5-7.3-3.6-3-2.3-5.5-5-8.2-5.8",
+  "m103.5 128.1c-6.4 1.8-7 5.5-6 17.5 0.5 5.9 4 6.5 4.5 15.8",
+  "m98 197c-1.6-14.4 0-17.4 2.4-24.6",
+  "m75.1 127.4c-2.2-0.3-8.7 0-8.6-4.8 0.5-3 4.4-5.1 8-2.1 5.1 4.5 8 5 14.4 4",
+  "m53.5 117.9c6.6 3.5 8.9 2.5 14-1.8 5.1-4.1 10.6-10.1 14-11.5l1.5-0.5",
+  "m56.6 107.9c11.5-1.3 13 0.7 17.4-1.3 4-2 4.9-5.2 10.1-5.2l8.9-0.8",
+  "m30.1 97.9c6.8 2.6 14.4 1.7 21.4-2.3 4.6-2.2 8.9-7.1 15-8.5",
+  "m17.9 95c5.1 3.6 14 7.4 24.7 7.9 5 0.1 8.4-1.5 13-4.8",
+  "m11.4 90c-3.5-2.5-8-6.9-5.5-11.1 2.7-3.3 7.6-1.5 8 2.1 0.2 3.5 2.2 6.4 3.6 7.6",
+  "m7 54.5c-4.1 0.5-5.5 8-5 12.5 1.6 7 8.5 4.1 11.5 7 1.6 1 3.1 2.6 3.1 4.1",
+  "m15.1 58.1c2.9 5.5 6.3 3.9 8.9 9.4 2.9 6.5 4.6 12 8 15.5 1.6 1.1 4 2 4.9 2.1",
+  "m34.4 61.1c-3.4 2-6 5.3-4.4 11.5 2.4 7.9 14.1 10 16.5-0.1",
+  "m42.4 53.6c-8.5 3.8-10.8 6.5-15.9 6-5.9-0.2-12.1-4.1-12-11 0.1-3.6 6-5.6 9.1-8",
+  "m29.6 37.4c-5.1-0.8-8.2-8.4-3.5-12.8 2.4-2.2 7.9-5.2 10.4-6 3.1-0.7 4.6-4.5 8.9-6.1",
+  "m54.6 11.5c-6.2 1.9-18.1 7.1-14.1 15.1 2 3 2.6 9.5-1.9 11",
+  "m55.4 38.1c-7.4 0.5-11.3-6-8.9-12 1.4-3.5 8.5-10.1 14.1-12.5",
+  "m62.4 29c-0.8-7.5-3.5-11 3.7-15 3.5-1.5 5.8-0.4 10-1.5 5-0.9 7.5-0.9 7.5-0.5",
+  "m82.9 32.1c-6.9-1.5-9.4-8.5-6.4-13.5 4.1-5 9.5-3.5 16.5-1.7",
+  "m102 26.6c3-1.1 6.1-3.6 9.9-3.7 3.6-0.3 6.2-2.8 12.1-2.5 2.6 0.2 5.6 1.7 9.1 2.1 3.8 0.1 5 0.5 6.9 1.4",
+  "m151.5 37.6c-2.6-1.6-3.9-6.1-9-8.2-5.6-2.9-6.4-2.8-10.6-3.5-5.3-1.3-7.3-2.8-10.8-1.9",
+  "m179.6 46.9c-1.7 4.6-5.5 5.6-9.5 4.7-3.5-0.6-10.5-2.6-23.5-2.6",
+  "m183 70.6c-3.9 0.5-6.4-1.5-9.9-5-3.5-4.6-12.6-8.1-24-8.1",
+  "m168.1 69c-3.2-3-8-5.5-13.5-5.4",
+  "m164.4 70.6c4.7 2.4 8.5 10.4 8.5 17.5 0.5 8.4-1.8 14.4-5.4 17.5",
+  "m171.1 72c4 4.1 7.9 9.5 7.5 14.6",
+  "m180.1 78.6c-1.7-1.1-3.5-5-5.2-6.2",
+  "m178.5 94.6c-1.9 4-5.9 8-3.9 14 0.9 3 4.8 6.8 0.9 10.4-3.6 3-7.4 2.6-10.4-1.6",
+  "m161.1 122.6c-1.5-6.5-16-15-24-23",
+  "m134.5 146.6c-6.6-10-14.6-18.5-20.4-22.7l-4.1-5.3",
+  "m116.5 128.1c-5.4-5.5-8.6-4.7-14.4-2.7-2.5 0.7-10.5 0.7-20 2.5",
+  "m73.9 91.5c-7.8-1.6-12 5.9-8.4 10 2 2.1 6.1 3.1 9 0.9 2.5-2 4-3.9 6.6-3.8",
+  "m86.6 90.5c7.5-0.1 16 2.5 20.5 5 6.5 3.4 8.4 5.6 14 4.1",
+  "m122.9 91c-5.3-6.5-11.9-2.9-10.9 2 2 4.9 6.9 3.9 9.5 3 3.1-1 7.9 2.1 10 4",
+  "m130.6 116.6c-3.5 5-13.5 5-16.1-3.6-1-3.9-6.6-9.4-11.9-10.4",
+  "m88.5 120c3.6-1 3.5-5.5 6.1-7.4 6.8-4.7 13.3 1 11.5 6.9-1.5 3.1-5 4.1-7.5 4.1",
+  "m79.6 116.6c-2.6-0.5-4.7-7.5 3.4-8.6 9.1-1.4 21.6-2.5 25.1 2.6",
+  "m131.1 116.6c0.4-6.7 0.4-14.2-8-14.6-4 0-7.5 1.6-11.1-0.5-4.5-2.5-9-4.4-18-4.1",
+  "m121.5 146.5c1.1-1.6 0.1-5-3.5-5.5-4.4 0-4.6 6.1-8.5 6-3.4-0.4-5.4-5.4-2-8.4 2.9-2.5 5.1-6 1.6-8.6",
+  "m117.6 153.4c-1 6.1 7 8.1 10.8 2.1 5.7-8.5 0.2-12.9-4.4-18.9",
+  "m52.6 84.4c6-0.3 8-2 14.9-4.9 2.4-1.4 6.4-0.6 18.6-3.6",
+  "m64.4 83.4c6.2-3 7.5-1.9 13.5-3.5 6.2-1.5 11-1.3 20.2-6.3",
+  "m77.1 84.1c9-1.5 15.5-3.6 19-4.6 10.3-2.1 13 0.1 15.4 0.4",
+  "m69.1 87.6c8.9-0.6 18.8-3.6 27-5",
+  "m107.5 82c5 0.4 9.4 1.6 11.6 2 4.5 1.6 5 3.9 9.8 6.5 5 2.1 7.6 2.5 10.7 7",
+  "m121.6 82.5c2.5 0.5 5 4.5 9.5 6.1 5.5 1.8 6.3 1.9 9.3 4.9 3.2 3 8.7 7.5 10.1 9",
+  "m148.6 87c3.8-0.4 4.9 2.9 9.5 2.9 4.4-0.3 8.5-2.3 10.8 3.5 1.5 4.7-1.4 9-3.9 11",
+  "m154.6 86.4c8.5 3.6 14.8-4 10.9-10.5-3-4.9-12.1-5.9-16.4-5.9",
+  "m139.1 70.5c-7.2-0.9-10.6-0.5-12.5 4.1-3.5 5.3-12.5 4.5-12-2 0.5-3 1.9-3.2 1.9-3.2",
+  "m123.6 67.9c5.5-0.9 11-1 17.5-0.9 6.4-0.1 15.5-1.6 22 1.6",
+  "m109.6 66.6c4.3-2.1 4-3.2 11.5-3.2l28 0.2",
+  "m98 70c6.6-3 10.1-5 13.1-7 3.5-2.5 9.4-2.4 20.5-2.1h9.4",
+  "m104 61.4c6.6-2.4 6.5-3.9 13.5-3.8h24.1",
+  "m101.5 56.6c8.1-1.2 13.1-1.6 19.1-1.5l15.9 0.3",
+  "m99.1 51c10-1.5 17.4-2 30.8-1.6l7.6 0.2",
+  "m85.1 50.5c-8.5 0.6-17.2 2.9-20 8.5-2.2 5.6 1.9 7.1 1.4 13.5",
+  "m51.6 63c6.3-5.5 11-13.4 21.3-17.1l3.6-2.3",
+  "m43.5 56.6c4.9-2.1 8.9-3.6 11.9-5.6 4.5-2.4 10.1-7.6 17.5-10.5l11.6-1.9",
+  "m76.1 37c9-0.4 22-3.4 27.5-6.4l6.5-3.1",
+  "m93 36.5c12.9-1.5 13.5-3.4 16.4-5.5 2.6-1.6 8.7-3.1 12.2-4.4 4.3-1.2 7.5 3.4 8.3 6.8 0.2 3.7 0.6 7-5.4 7l-12.1-0.4c-6.3 0.1-13.5 1-22.3 2.5",
+  "m137.1 30.5c5-0.6 9.3 4.1 7 9.4-2.5 5-6.5 4.1-9.2 4.1h-12.9",
+  "m95 42.4c7.5-1.4 16.1-2.4 22.6-1.8l6.3 0.4",
+  "m76.5 49c10.5-0.9 13.1-2 20.6-3.5 5-0.9 12.3-1.1 12.3-1.1",
+  "m83.5 59.5c5.1-3.9 10.9-4.9 21.6-6.5 6.8-0.9 13.4-1.4 13.4-1.4",
+  "m95.9 57.5c-6.4 1.5-11.8 4.9-13.5 7-2.5 4 1.1 10 7.2 5.6l6-3.5",
+  "m76.5 66.9c-3.9 2.2-8.6-1.9-7.4-6.9 1.8-3.9 5.4-4 8.4-4.9l13.6-2.6",
+  "m55.1 79.5c-5-1-6.7-7.1-3.5-10.5 3.4-3.1 4-3.4 6-6 2.9-3.6 6.9-8 10.5-11",
+  "m55.9 88.1c-4.8 2.9-11.5 7.9-19.4 7.5-4.4 0-8.6-1.7-12.9-5",
+  "m51 49.6c6.6-2.6 12-7.2 18.4-8.6l12.7-1.9 5.3-1.1",
+  "m77.6 43c-8.1 1-16.1 5.5-22.7 9",
+  "m85.1 44.5c-7.2 0.6-15.7 2.5-19.7 5.6",
+  "m101.5 18c8.6 1.1 13.6 0.6 20-0.4 4-0.2 8.5 1.9 13 2.3",
+  "m146.6 53c5.9-2.1 21 0 26.4 3.6",
+  "m146.6 49c9.9-0.4 17.5 1.5 20.9 2.4",
+  "m146.6 55c7.9-1 15.5 0.4 22.8 3.5 5 2.4 5 6.1 9.7 8.1",
+  "m150.6 57.5c7.3-0.5 16 1.5 20 4.5 2.5 2.4 4.9 5 6.9 6.1",
+  "m148.4 60.1c6.2-0.1 15.2 0.4 20.7 4.4 2.4 2.1 5.3 4.6 7 6.4",
+  "m139.9 87.9c-3.9-1.4-10.5-2.4-10.4-8 0.9-6.9 9-8.4 14.5-1.4",
+  "m134.4 102.5c5.2 3.5 21.6 15.5 24 19.5 2.2 4.1-0.3 7.6-2.3 8.1",
+  "m145 101.5c4.5 3.6 14.5 10.5 18.1 16.4 2.4 4.1 4.3 8.7 8.5 8.1",
+  "m122.6 122.9c-4.5-0.9-8.1-3.4-10.1-8.4",
+];
+
+// Word entries for brain network
+interface BrainWordEntry { word: string; x: number; y: number; angle: number; spatial: number; }
+const BRAIN_WORD_ENTRIES: BrainWordEntry[] = [
+  { word: "a", x: 101.1, y: 4.9, angle: 0, spatial: 0 },
+  { word: "be", x: 94.6, y: 18.2, angle: 0.124, spatial: 0.05 },
+  { word: "because", x: 84.8, y: 32.9, angle: -0.272, spatial: 0.1 },
+  { word: "come", x: 63.2, y: 40.9, angle: -0.278, spatial: 0.15 },
+  { word: "day", x: 44, y: 54.4, angle: -0.478, spatial: 0.2 },
+  { word: "first", x: 36.5, y: 62.1, angle: -0.47, spatial: 0.22 },
+  { word: "for", x: 47, y: 69.9, angle: -0.777, spatial: 0.25 },
+  { word: "many", x: 39.2, y: 87.4, angle: -0.124, spatial: 0.35 },
+  { word: "my", x: 58.2, y: 88.5, angle: -0.53, spatial: 0.36 },
+  { word: "out", x: 68.5, y: 86.6, angle: -0.242, spatial: 0.37 },
+  { word: "their", x: 75.9, y: 92.5, angle: -0.052, spatial: 0.38 },
+  { word: "them", x: 82.4, y: 98.9, angle: -0.009, spatial: 0.4 },
+  { word: "they", x: 84, y: 105.3, angle: -0.052, spatial: 0.42 },
+  { word: "those", x: 77.7, y: 119.2, angle: 0.53, spatial: 0.5 },
+  { word: "time", x: 90.7, y: 125.2, angle: -0.087, spatial: 0.52 },
+  { word: "to", x: 76.2, y: 128.9, angle: 0.105, spatial: 0.54 },
+  { word: "use", x: 104.5, y: 129.1, angle: 0.423, spatial: 0.55 },
+  { word: "up", x: 118.6, y: 152.1, angle: -0.839, spatial: 0.65 },
+  { word: "think", x: 141.8, y: 150.1, angle: 0.978, spatial: 0.68 },
+  { word: "that", x: 148.9, y: 133.4, angle: -0.342, spatial: 0.58 },
+  { word: "take", x: 160, y: 123.9, angle: 0.829, spatial: 0.56 },
+  { word: "some", x: 172.9, y: 126.6, angle: 0.559, spatial: 0.55 },
+  { word: "like", x: 187.8, y: 116.9, angle: -0.259, spatial: 0.54 },
+  { word: "look", x: 183.1, y: 86.3, angle: -0.985, spatial: 0.4 },
+  { word: "know", x: 184.1, y: 69.4, angle: 0.454, spatial: 0.33 },
+  { word: "no", x: 181.6, y: 68, angle: -0.009, spatial: 0.31 },
+  { word: "here", x: 175.9, y: 34.7, angle: 0.883, spatial: 0.13 },
+  { word: "by", x: 152.4, y: 39.2, angle: 0.94, spatial: 0.14 },
+  { word: "but", x: 139.9, y: 25.2, angle: 0.454, spatial: 0.08 },
+  { word: "of", x: 136.8, y: 21.1, angle: -0.978, spatial: 0.06 },
+  { word: "as", x: 133.4, y: 13.5, angle: -0.259, spatial: 0.04 },
+  { word: "and", x: 86.1, y: 13.2, angle: 0.087, spatial: 0.04 },
+  { word: "all", x: 63.2, y: 14.9, angle: -0.829, spatial: 0.04 },
+  { word: "your", x: 56.4, y: 12.3, angle: -0.342, spatial: 0.03 },
+  { word: "year", x: 46, y: 12.7, angle: -0.5, spatial: 0.03 },
+  { word: "you", x: 30.7, y: 39.3, angle: -0.052, spatial: 0.14 },
+  { word: "could", x: 15.1, y: 48.4, angle: -0.629, spatial: 0.16 },
+  { word: "me", x: 8.6, y: 55.5, angle: 0.629, spatial: 0.22 },
+  { word: "more", x: 16.8, y: 80.3, angle: 0.883, spatial: 0.34 },
+  { word: "people", x: 18.4, y: 90.9, angle: 0.559, spatial: 0.38 },
+  { word: "say", x: 12.2, y: 91.4, angle: 0.629, spatial: 0.39 },
+  { word: "these", x: 50.2, y: 109.6, angle: 0.94, spatial: 0.48 },
+  { word: "see", x: 56.9, y: 97.9, angle: -0.629, spatial: 0.4 },
+  { word: "also", x: 57.7, y: 38.1, angle: -0.829, spatial: 0.12 },
+  { word: "how", x: 77.3, y: 67.2, angle: -0.629, spatial: 0.26 },
+  { word: "man", x: 89.5, y: 76.1, angle: -0.5, spatial: 0.3 },
+  { word: "its", x: 97.6, y: 65.8, angle: -0.5, spatial: 0.27 },
+  { word: "six", x: 92.6, y: 53, angle: -0.105, spatial: 0.2 },
+  { word: "find", x: 87, y: 45.5, angle: -0.208, spatial: 0.17 },
+  { word: "from", x: 78.3, y: 43.8, angle: -0.208, spatial: 0.16 },
+  { word: "do", x: 86.8, y: 39.3, angle: -0.278, spatial: 0.14 },
+  { word: "can", x: 113, y: 27.9, angle: -0.358, spatial: 0.08 },
+  { word: "even", x: 125.2, y: 28.8, angle: 0.966, spatial: 0.11 },
+  { word: "get", x: 131.4, y: 34.6, angle: 0.848, spatial: 0.12 },
+  { word: "her", x: 130.5, y: 47.4, angle: -0.009, spatial: 0.18 },
+  { word: "him", x: 138.1, y: 50.2, angle: -0.052, spatial: 0.19 },
+  { word: "if", x: 163.1, y: 54.8, angle: -0.259, spatial: 0.21 },
+  { word: "just", x: 142.4, y: 58.4, angle: -0.009, spatial: 0.23 },
+  { word: "new", x: 100.3, y: 73.6, angle: -0.5, spatial: 0.29 },
+  { word: "she", x: 98.8, y: 83.1, angle: -0.087, spatial: 0.34 },
+  { word: "our", x: 113.2, y: 82.5, angle: 0.208, spatial: 0.34 },
+  { word: "one", x: 140.4, y: 71.4, angle: 0.005, spatial: 0.29 },
+  { word: "make", x: 134.3, y: 62.2, angle: -0.052, spatial: 0.25 },
+  { word: "only", x: 144.7, y: 80.6, angle: 0.777, spatial: 0.34 },
+  { word: "or", x: 142.9, y: 89.1, angle: -0.5, spatial: 0.37 },
+  { word: "other", x: 151.4, y: 103.7, angle: 0.407, spatial: 0.45 },
+  { word: "now", x: 163.7, y: 107.5, angle: 0.966, spatial: 0.48 },
+  { word: "not", x: 177.7, y: 87.1, angle: 0.996, spatial: 0.38 },
+  { word: "speak", x: 123.6, y: 92.5, angle: 0.5, spatial: 0.39 },
+  { word: "than", x: 121.3, y: 100.2, angle: 0.208, spatial: 0.42 },
+  { word: "tell", x: 131.6, y: 99.4, angle: 0.829, spatial: 0.42 },
+  { word: "then", x: 129.5, y: 106.4, angle: 0.883, spatial: 0.46 },
+  { word: "thing", x: 124.2, y: 124.1, angle: 0.454, spatial: 0.52 },
+  { word: "two", x: 116.9, y: 130.8, angle: 0.707, spatial: 0.55 },
+  { word: "this", x: 104.9, y: 110.9, angle: 0.866, spatial: 0.48 },
+  { word: "there", x: 94.6, y: 101.2, angle: 0.259, spatial: 0.42 },
+  { word: "some", x: 56.7, y: 80.3, angle: -0.407, spatial: 0.32 },
+  { word: "it", x: 97.5, y: 56.2, angle: 0.966, spatial: 0.23 },
+  { word: "give", x: 112.1, y: 45.1, angle: -0.052, spatial: 0.17 },
+  { word: "very", x: 102.6, y: 169.5, angle: -0.985, spatial: 0.72 },
+];
+
+// Neural pulse regions
+const PULSE_REGIONS = [
+  { cx: 100, cy: 50, rx: 60, ry: 30 },
+  { cx: 100, cy: 98, rx: 70, ry: 40 },
+  { cx: 80, cy: 130, rx: 40, ry: 25 },
+  { cx: 140, cy: 110, rx: 35, ry: 30 },
+  { cx: 100, cy: 160, rx: 30, ry: 20 },
+];
 import { LanguageManager, getFontForLanguage, getFontFamilyForLanguage, type Language, FORMULA_TEXTS, SCENE_TEXTS, ORNAMENTAL_TEXT, UI_TEXTS, LANGUAGE_LABELS, textDirection, VIMANA_WORD } from "../i18n";
 
 interface Act1SceneProps {
@@ -210,14 +414,14 @@ const SCENES: SceneDef[] = [
   {
     phaseId: "11",
     navLabel: "NETWORK",
-    headline: "GLOBAL MIND.",
-    body: "The biosphere becomes a single integrated circuit. Synapses snap at tree tips in a global flash of neural awakening.",
-    formula: "lSystemTree / synapses",
-    status: "sentient consciousness",
+    headline: "MYCELIUM.",
+    body: "Beneath the surface, billions of hyphae weave the earth's original internet. A silent web of nutrient exchange and chemical signals.",
+    formula: "myceliumNetwork / underground web",
+    status: "mycelial consciousness",
     frequency: "999.99 Hz",
     amplitude: "1.000",
     coordinates: "12 55 59.99 N / 12 55 59.99 E",
-    origin: "global biosphere",
+    origin: "underground network",
     duration: 6,
   },
   {
@@ -248,7 +452,7 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = 4; // Netlify deploy: scenes 0-3 only (Void → Field). Full array preserved.
+const TOTAL_SCENES = SCENES.length; // Local dev: all scenes active (Netlify stays at 4 via git)
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -295,6 +499,7 @@ const PARAGRAPH_TEXT = "The quick brown fox jumps over the lazy dog. Pure freque
 function getFloraResult(cell: StableCell, i: number, t: number) {
   if (cell.floraType === "fern") {
     // Barnsley-like high variety recursive fern
+
     const stemLength = 15 + seededRandom(i * 12.34) * 45; // wide spread: 15 to 60
     const frondPairs = 5 + Math.floor(seededRandom(i * 56.78) * 5); // 5 to 10 frond layers
     const angleSpread = 0.22 + seededRandom(i * 90.12) * 0.48; // angle spread 0.22 to 0.70 rad (12 to 40 deg)
@@ -486,6 +691,7 @@ function renderCapsuleForScene(
   const placements = layoutTextOnSegments(
     "VMNA",
     result.segments,
+
     fontSize,
     "Space Grotesk, sans-serif",
   );
@@ -526,6 +732,9 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
   const lastFrameRef = useRef(performance.now());
   const langMgrRef = useRef(new LanguageManager(3)); // 3 seconds per language
   const currentLangRef = useRef<Language>('en');
+
+  // Orbital drag state for brain scene
+  const dragRef = useRef({ active: false, lastX: 0, lastY: 0, rotX: 0.35, rotY: 0 });
 
   const [scene, setScene] = useState(Math.min(initialScene ?? 0, TOTAL_SCENES - 1));
   const [sceneProgress, setSceneProgress] = useState(0);
@@ -605,8 +814,65 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // ─── Orbital drag controls for brain scene ───
+    const onPointerDown = (e: PointerEvent) => {
+      if (sceneRef.current !== 13) return;
+      dragRef.current.active = true;
+      dragRef.current.lastX = e.clientX;
+      dragRef.current.lastY = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    };
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragRef.current.active) return;
+      const dx = e.clientX - dragRef.current.lastX;
+      const dy = e.clientY - dragRef.current.lastY;
+      dragRef.current.rotY += dx * 0.008;
+      dragRef.current.rotX += dy * 0.005;
+      dragRef.current.rotX = Math.max(-1.2, Math.min(1.2, dragRef.current.rotX));
+      dragRef.current.lastX = e.clientX;
+      dragRef.current.lastY = e.clientY;
+    };
+    const onPointerUp = (e: PointerEvent) => {
+      dragRef.current.active = false;
+      canvas.releasePointerCapture(e.pointerId);
+    };
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
+
     let animationId = 0;
     let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    // ─── Brain SVG path cache → LineSegment arrays (created once) ───
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const brainSvgContainer = document.createElementNS(svgNS, 'svg');
+    brainSvgContainer.style.position = 'absolute';
+    brainSvgContainer.style.visibility = 'hidden';
+    document.body.appendChild(brainSvgContainer);
+
+    // Convert each SVG path to LineSegment[] by sampling points along it
+    const brainContourSegments: LineSegment[][] = BRAIN_SVG_PATHS.map(d => {
+      const el = document.createElementNS(svgNS, 'path');
+      el.setAttribute('d', d);
+      brainSvgContainer.appendChild(el);
+      const totalLen = el.getTotalLength();
+      const segments: LineSegment[] = [];
+      const steps = Math.max(8, Math.floor(totalLen / 3));
+      for (let s = 0; s < steps; s++) {
+        const t1 = (s / steps) * totalLen;
+        const t2 = ((s + 1) / steps) * totalLen;
+        const p1 = el.getPointAtLength(t1);
+        const p2 = el.getPointAtLength(t2);
+        const dx = p2.x - p1.x, dy = p2.y - p1.y;
+        segments.push({
+          x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+          angle: Math.atan2(dy, dx),
+          length: Math.sqrt(dx * dx + dy * dy),
+          depth: 0,
+        });
+      }
+      return segments;
+    });
 
     const handleScroll = () => {
       const maxScroll = Math.max(
@@ -764,6 +1030,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.translate(w * c.x, h * c.y);
         ctx.scale(c.scale, c.scale);
         renderFirstRing(
+
           ctx,
           0,
           0,
@@ -956,6 +1223,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.rotate(t * crystP.rotationSpeed);
         ctx.scale(easedFloraP * crystP.textScale * scale * crystP.scale, easedFloraP * crystP.textScale * scale * crystP.scale);
 
+
         const result = dendriticCrystal("CRYSTAL", {
           seedLength: crystP.seedLength, branches: crystP.branches,
           depth: crystP.depth, angleSpread: crystP.angleSpread,
@@ -1021,102 +1289,116 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // === NETWORK (scene 11) — lSystemTree with connection sparks ===
-
+      // === MYCELIUM NETWORK (scene 11) — underground fungal web (pretext) ===
       if (renderScene === 11) {
-        const netP = theatre.network;
+        const mycP = theatre.myceliumNetwork;
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.scale(netP.scale, netP.scale);
-        const netText = formulaTexts.networkNeural;
-        const angle = lerp(16, 32, progress);
-        const step = lerp(5, 9, progress) * scale;
-        const iter = Math.round(lerp(2, 5, progress));
-        const result = lSystemTree(
-          netText,
-          { angle, stepLength: step, iterations: iter, startAngle: 90 },
-          t,
-        );
-        if (result.type === "segments") {
-          const placements = layoutTextOnSegments(
-            netText,
-            result.segments,
-            netP.fontSize * scale,
-            currentFontFamily,
-          );
-          renderFormulaWithGlow(
-            result.segments,
-            placements,
-            "rgba(129, 140, 248, 0.42)",
-            1.4,
-            "#ffffff",
-            true,
-            netP.fontSize * scale,
-          );
+        ctx.scale(mycP.scale, mycP.scale);
 
-          // Connection sparks — find branch tips and connect nearby ones
-          if (progress > 0.4) {
-            const connectProgress = (progress - 0.4) / 0.6;
-            // Collect branch endpoints (tips)
-            const tips: Array<{ x: number; y: number }> = [];
-            for (const seg of result.segments) {
-              tips.push({ x: seg.x2, y: seg.y2 });
+        const mycText = formulaTexts.myceliumNetwork;
+        const mycProgress = easeOutCubic(clamp01(progress * 1.6));
+
+        if (mycProgress > 0) {
+          const mycResult = myceliumNetwork(mycText, {
+            nodes: mycP.nodes, branches: mycP.branches,
+            depth: mycP.depth, stepLength: mycP.stepLength,
+            angleSpread: mycP.angleSpread, lengthDecay: mycP.lengthDecay,
+            reconnectDist: mycP.reconnectDist, spread: mycP.spread,
+          }, t);
+
+          if (mycResult.type === "segments") {
+            const visibleCount = Math.floor(mycResult.segments.length * mycProgress);
+            const allSegs = mycResult.segments.slice(0, visibleCount);
+
+            // Split by depth: main hyphae (depth <= maxDepth), reconnection threads, node crosses
+            const maxD = mycP.depth ?? 4;
+            const hyphaeSegs = allSegs.filter(s => (s.depth ?? 0) <= maxD);
+            const webSegs = allSegs.filter(s => (s.depth ?? 0) > maxD && (s.depth ?? 0) <= maxD + 1);
+            const nodeSegs = allSegs.filter(s => (s.depth ?? 0) > maxD + 1);
+
+            // Main hyphae — green-gold with depth-based weight
+            const mycPlacements = layoutTextOnSegments(mycText, hyphaeSegs, mycP.fontSize, currentFontFamily, { preserveOrder: true });
+            renderFormulaWithGlow(hyphaeSegs, mycPlacements, "rgba(180, 160, 60, 0.3)", 1.2, "#e8d882", true, mycP.fontSize);
+
+            // Reconnection web threads — faint, thin
+            if (webSegs.length > 0) {
+              const webPlacements = layoutTextOnSegments(mycText, webSegs, mycP.fontSize * 0.7, currentFontFamily, { preserveOrder: true });
+              renderFormulaWithGlow(webSegs, webPlacements, "rgba(160, 180, 100, 0.12)", 0.4, "#c8d48a", false, mycP.fontSize * 0.7);
             }
 
-            // Connect tips that are within a threshold distance
-            const threshold = lerp(120, 50, connectProgress) * scale;
+            // Nutrient pulses — traveling along hyphae (batched, no per-dot shadow)
+            const pulseCount = 3;
             ctx.save();
-            for (let i = 0; i < tips.length; i++) {
-              for (let j = i + 1; j < tips.length; j++) {
-                const dx = tips[i].x - tips[j].x;
-                const dy = tips[i].y - tips[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < threshold) {
-                  const alpha = (1 - dist / threshold) * connectProgress * 0.6;
-                  ctx.beginPath();
-                  ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
-                  ctx.lineWidth = 1 * scale;
-                  ctx.moveTo(tips[i].x, tips[i].y);
-                  ctx.lineTo(tips[j].x, tips[j].y);
-                  ctx.stroke();
+            for (let w = 0; w < pulseCount; w++) {
+              const wavePhase = ((t * 0.4 + w / pulseCount) % 1);
+              const wavePos = wavePhase * hyphaeSegs.length;
+              const waveSpread = 30 * scale;
 
-                  // Spark at junction midpoint
-                  if (alpha > 0.3) {
-                    const mx = (tips[i].x + tips[j].x) / 2;
-                    const my = (tips[i].y + tips[j].y) / 2;
-                    ctx.beginPath();
-                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                    ctx.shadowColor = "#818cf8";
-                    ctx.shadowBlur = 12 * scale;
-                    ctx.arc(mx, my, (2 + alpha * 3) * scale, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                  }
-                }
+              ctx.beginPath();
+              for (let si = 0; si < hyphaeSegs.length; si += 4) {
+                const dist = Math.abs(si - wavePos);
+                if (dist > waveSpread) continue;
+
+                const seg = hyphaeSegs[si];
+                const intensity = (1 - dist / waveSpread) * mycProgress;
+                if (intensity < 0.05) continue;
+
+                const mx = (seg.x1 + seg.x2) / 2;
+                const my = (seg.y1 + seg.y2) / 2;
+                const r = (1 + intensity * 2.5) * scale;
+
+                ctx.moveTo(mx + r, my);
+                ctx.arc(mx, my, r, 0, Math.PI * 2);
               }
+              ctx.fillStyle = `rgba(232, 216, 130, 0.5)`;
+              ctx.fill();
             }
             ctx.restore();
-          }
-        }
-        // Crescendo sparks
-        if (progress > 0.88) {
-          ctx.fillStyle = "#ffffff";
-          ctx.shadowColor = "#6366f1";
-          ctx.shadowBlur = 18 * scale;
-          for (let i = 0; i < 15; i++) {
-            const sparkAngle = Math.random() * Math.PI * 2;
-            const sparkDist = (50 + Math.random() * 220) * scale;
-            const px = Math.cos(sparkAngle) * sparkDist;
-            const py = -180 * scale + Math.sin(sparkAngle) * sparkDist;
-            ctx.beginPath();
-            ctx.arc(px, py, (2 + Math.random() * 3.5) * scale, 0, Math.PI * 2);
-            ctx.fill();
+
+            // Mycorrhizal nodes — bright junction points
+            if (progress > 0.3) {
+              const nodeIntensity = (progress - 0.3) / 0.7;
+              for (let ni = 0; ni < 15; ni++) {
+                const phase = Math.sin(t * 1.5 + ni * 2.1) * 0.5 + 0.5;
+                if (phase < 0.4) continue;
+
+                const alpha = (phase - 0.4) / 0.6 * nodeIntensity;
+                const nodeSeg = hyphaeSegs[Math.floor(ni * hyphaeSegs.length / 15)];
+                if (!nodeSeg) continue;
+
+                const mx = (nodeSeg.x1 + nodeSeg.x2) / 2;
+                const my2 = (nodeSeg.y1 + nodeSeg.y2) / 2;
+
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 240, 180, ${alpha * 0.9})`;
+                ctx.shadowColor = "rgba(232, 216, 130, 0.9)";
+                ctx.shadowBlur = 18 * scale * alpha;
+                ctx.arc(mx, my2, (1.5 + alpha * 3) * scale, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+              }
+            }
+
+            // Underground aura — warm earth glow
+            if (progress > 0.5) {
+              const auraIntensity = (progress - 0.5) / 0.5;
+              ctx.save();
+              ctx.globalAlpha = auraIntensity * 0.1;
+              const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 300 * scale);
+              gradient.addColorStop(0, "rgba(180, 160, 60, 0.5)");
+              gradient.addColorStop(0.5, "rgba(120, 100, 40, 0.2)");
+              gradient.addColorStop(1, "rgba(60, 50, 20, 0)");
+              ctx.fillStyle = gradient;
+              ctx.fillRect(-350 * scale, -350 * scale, 700 * scale, 700 * scale);
+              ctx.restore();
+            }
           }
         }
         ctx.restore();
       }
 
-      // === EMERGENCE / THE FIRING (scene 12) — 3x dendriticCrystal cascade ===
+      // === THE FIRING (scene 12) — neuron cascade with glow ===
       if (renderScene === 12) {
         const fireP = theatre.firing;
         ctx.save();
@@ -1126,17 +1408,23 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         const fireText = formulaTexts.firingDendritic;
         const cascade = progress * fireP.cascadeSpeed;
 
-        // 3 overlapping crystals at different rotations, firing in sequence
-        for (let ci = 0; ci < 3; ci++) {
-          const crystalProgress = clamp01((cascade - ci * 0.25) / 0.5);
-          if (crystalProgress <= 0) continue;
+        const neuronCount = 5;
+        const neuronRadius = 120 * scale;
 
-          const rotation = (ci / 3) * Math.PI * 2 + t * 0.1;
+        for (let ni = 0; ni < neuronCount; ni++) {
+          const neuronProgress = clamp01((cascade - ni * 0.15) / 0.4);
+          if (neuronProgress <= 0) continue;
+
+          const nAngle = (ni / neuronCount) * Math.PI * 2 - Math.PI / 2;
+          const nx = Math.cos(nAngle) * neuronRadius;
+          const ny = Math.sin(nAngle) * neuronRadius;
+
           ctx.save();
-          ctx.rotate(rotation);
+          ctx.translate(nx, ny);
+          ctx.rotate(nAngle + t * 0.05);
 
           const result = dendriticCrystal(fireText, {
-            seedLength: fireP.seedLength * scale,
+            seedLength: fireP.seedLength * scale * 0.4,
             branches: fireP.branches,
             depth: fireP.depth,
             angleSpread: fireP.angleSpread,
@@ -1144,19 +1432,18 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             symmetry: fireP.symmetry,
           }, t);
 
+          const colors = ["rgba(33, 199, 223, 0.6)", "rgba(199, 192, 252, 0.6)", "rgba(242, 240, 236, 0.6)", "rgba(249, 115, 22, 0.6)", "rgba(16, 185, 129, 0.6)"];
+          const textColors = ["#21c7df", "#c7c0fc", "#f2f0ec", "#fb923c", "#10b981"];
+
           if (result.type === "segments") {
-            const visibleCount = Math.floor(result.segments.length * crystalProgress);
+            const visibleCount = Math.floor(result.segments.length * neuronProgress);
             const visibleSegs = result.segments.slice(0, visibleCount);
 
-            // Draw crystal lines with glow
-            const colors = ["rgba(33, 199, 223, 0.6)", "rgba(199, 192, 252, 0.6)", "rgba(242, 240, 236, 0.6)"];
-            const textColors = ["#21c7df", "#c7c0fc", "#f2f0ec"];
-
             ctx.save();
-            ctx.shadowColor = colors[ci];
-            ctx.shadowBlur = 12 * scale;
-            ctx.strokeStyle = colors[ci];
-            ctx.lineWidth = 1.2 + crystalProgress * 0.8;
+            ctx.shadowColor = colors[ni];
+            ctx.shadowBlur = 15 * scale * neuronProgress;
+            ctx.strokeStyle = colors[ni];
+            ctx.lineWidth = 1.2 + neuronProgress * 0.8;
             ctx.beginPath();
             for (const seg of visibleSegs) {
               ctx.moveTo(seg.x1, seg.y1);
@@ -1166,58 +1453,57 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             ctx.shadowBlur = 0;
             ctx.restore();
 
-            // Text on crystal branches — visible and readable
             ctx.save();
             ctx.textAlign = "left";
             ctx.textBaseline = "top";
             ctx.direction = textDirection(lang);
-            const langFont = getFontForLanguage(lang, fireP.fontSize * scale);
-            for (let si = 0; si < visibleSegs.length; si += 3) {
+            const langFont = getFontForLanguage(lang, fireP.fontSize * scale * 0.7);
+            for (let si = 0; si < visibleSegs.length; si += 4) {
               const seg = visibleSegs[si];
               const mx = (seg.x1 + seg.x2) / 2;
               const my = (seg.y1 + seg.y2) / 2;
               const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
-              const wordIdx = si % fireText.split(" ").length;
-              const word = fireText.split(" ")[wordIdx] || "";
+              const words = fireText.split(" ");
+              const word = words[si % words.length] || "";
               if (!word.trim()) continue;
               ctx.save();
               ctx.translate(mx, my);
               ctx.rotate(angle);
               ctx.font = langFont;
-              ctx.globalAlpha = 0.6 + crystalProgress * 0.3;
-              ctx.fillStyle = textColors[ci];
+              ctx.globalAlpha = 0.5 + neuronProgress * 0.3;
+              ctx.fillStyle = textColors[ni];
               ctx.fillText(word, 0, 0);
               ctx.restore();
             }
             ctx.restore();
-
-            // Pulse wave — bright dots traveling along segments
-            if (crystalProgress > 0.3) {
-              const pulsePos = ((t * 2 + ci * 0.7) % 1) * visibleSegs.length;
-              const pulseIdx = Math.floor(pulsePos);
-              if (pulseIdx < visibleSegs.length) {
-                const seg = visibleSegs[pulseIdx];
-                ctx.beginPath();
-                ctx.fillStyle = "#ffffff";
-                ctx.shadowColor = textColors[ci];
-                ctx.shadowBlur = 18 * scale;
-                ctx.arc(seg.x2, seg.y2, (3 + Math.sin(t * 8) * 1.5) * scale, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.shadowBlur = 0;
-              }
-            }
           }
           ctx.restore();
+
+          if (neuronProgress > 0.5 && ni < neuronCount - 1) {
+            const nextAngle = ((ni + 1) / neuronCount) * Math.PI * 2 - Math.PI / 2;
+            const nextX = Math.cos(nextAngle) * neuronRadius;
+            const nextY = Math.sin(nextAngle) * neuronRadius;
+            const pulseT = (neuronProgress - 0.5) / 0.5;
+            const px = nx + (nextX - nx) * pulseT;
+            const py = ny + (nextY - ny) * pulseT;
+
+            ctx.beginPath();
+            ctx.fillStyle = "#ffffff";
+            ctx.shadowColor = colors[ni];
+            ctx.shadowBlur = 20 * scale;
+            ctx.arc(px, py, (3 + Math.sin(t * 8) * 1.5) * scale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
         }
 
-        // Central flash at crescendo
         if (progress > 0.85) {
           const flashAlpha = (progress - 0.85) / 0.15;
           ctx.beginPath();
-          ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha * 0.8})`;
+          ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha * 0.9})`;
           ctx.shadowColor = "#ffffff";
-          ctx.shadowBlur = 40 * scale * flashAlpha;
-          ctx.arc(0, 0, (8 + flashAlpha * 20) * scale, 0, Math.PI * 2);
+          ctx.shadowBlur = 50 * scale * flashAlpha;
+          ctx.arc(0, 0, (10 + flashAlpha * 25) * scale, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
         }
@@ -1225,291 +1511,103 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // === CONVERGENCE / THE MIND (scene 13) — brain clip, sierpinski left, lSystem right ===
+      // === THE OBSERVER (scene 13) — SVG brain contour/word network ===
       if (renderScene === 13) {
-        const convP = theatre.convergence;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.scale(convP.scale, convP.scale);
+        const meshProgress = easeOutCubic(clamp01(progress * 2.5));
+        const wordReveal = clamp01((progress - 0.3) * 2);
+        const pulseReveal = clamp01((progress - 0.5) * 2);
+        const mobileFontScale = isMobile ? 0.6 : 1;
 
-        const convText = formulaTexts.convergenceSpiral;
-
-        // Build brain-shaped clip path — two hemispheres with cortical folds
-        const brainW = 320 * scale;
-        const brainH = 280 * scale;
-        const foldDepth = 25 * scale; // cortical fold depth
-        const fissureGap = 8 * scale; // central fissure width
-
-        const brainPath = new Path2D();
-
-        // Left hemisphere (clockwise from top-center)
-        brainPath.moveTo(-fissureGap, -brainH * 0.85);
-        // Top-left curve — cortical folds (wrinkles)
-        brainPath.bezierCurveTo(
-          -brainW * 0.3, -brainH * 0.95,   // control 1
-          -brainW * 0.7, -brainH * 0.7,    // control 2
-          -brainW * 0.85, -brainH * 0.3,   // end
-        );
-        // Left fold 1
-        brainPath.bezierCurveTo(
-          -brainW * 0.9 + foldDepth, -brainH * 0.15,
-          -brainW * 0.92 - foldDepth * 0.5, brainH * 0.05,
-          -brainW * 0.88, brainH * 0.2,
-        );
-        // Left fold 2 — bottom curve
-        brainPath.bezierCurveTo(
-          -brainW * 0.82 + foldDepth * 0.7, brainH * 0.45,
-          -brainW * 0.5 - foldDepth * 0.3, brainH * 0.7,
-          -brainW * 0.2, brainH * 0.85,
-        );
-        // Bottom-left to center
-        brainPath.bezierCurveTo(
-          -brainW * 0.08, brainH * 0.9,
-          -fissureGap, brainH * 0.6,
-          -fissureGap, brainH * 0.1,
-        );
-        brainPath.closePath();
-
-        // Right hemisphere (counter-clockwise from top-center)
-        brainPath.moveTo(fissureGap, -brainH * 0.85);
-        // Top-right curve
-        brainPath.bezierCurveTo(
-          brainW * 0.3, -brainH * 0.95,
-          brainW * 0.7, -brainH * 0.7,
-          brainW * 0.85, -brainH * 0.3,
-        );
-        // Right fold 1
-        brainPath.bezierCurveTo(
-          brainW * 0.9 - foldDepth, -brainH * 0.15,
-          brainW * 0.92 + foldDepth * 0.5, brainH * 0.05,
-          brainW * 0.88, brainH * 0.2,
-        );
-        // Right fold 2 — bottom curve
-        brainPath.bezierCurveTo(
-          brainW * 0.82 - foldDepth * 0.7, brainH * 0.45,
-          brainW * 0.5 + foldDepth * 0.3, brainH * 0.7,
-          brainW * 0.2, brainH * 0.85,
-        );
-        // Bottom-right to center
-        brainPath.bezierCurveTo(
-          brainW * 0.08, brainH * 0.9,
-          fissureGap, brainH * 0.6,
-          fissureGap, brainH * 0.1,
-        );
-        brainPath.closePath();
-
-        // Fade-in: brain grows from nothing
-        const brainAlpha = easeOutCubic(clamp01(progress * 1.5));
-        if (brainAlpha <= 0) { ctx.restore(); return; }
-
-        ctx.save();
-        ctx.globalAlpha = brainAlpha;
-
-        // Clip everything to the brain shape
-        ctx.clip(brainPath);
-
-        // === LEFT HEMISPHERE — sierpinskiTriangle (geometric, indigo) ===
-        const leftProgress = easeOutCubic(clamp01(progress * 1.4));
-        if (leftProgress > 0) {
+        if (meshProgress > 0) {
           ctx.save();
-          ctx.beginPath();
-          ctx.rect(-brainW - 10, -brainH - 10, brainW + 10, brainH * 2 + 20);
-          ctx.clip();
+          // Scale the 200x197 viewBox to fit the canvas
+          const viewScale = Math.min(w / 200, h / 197) * 0.85;
+          const offsetX = (w - 200 * viewScale) / 2;
+          const offsetY = (h - 197 * viewScale) / 2;
+          ctx.translate(offsetX, offsetY);
+          ctx.scale(viewScale, viewScale);
 
-          const sierResult = sierpinskiTriangle(convText, {
-            size: convP.sierpinskiSize * scale,
-            iterations: convP.sierpinskiIter,
-          }, t);
+          // Draw brain contour paths
+          ctx.strokeStyle = 'rgba(241, 241, 242, 0.5)';
+          ctx.lineWidth = 0.5;
+          ctx.setLineDash([0.6, 0.6]);
 
-          if (sierResult.type === "segments") {
-            const visibleCount = Math.floor(sierResult.segments.length * leftProgress);
-            const visibleSegs = sierResult.segments.slice(0, visibleCount);
+          ctx.lineCap = 'round';
 
-            // Lines
-            ctx.save();
-            ctx.shadowColor = "rgba(99, 102, 241, 0.6)";
-            ctx.shadowBlur = 10 * scale;
-            ctx.strokeStyle = "rgba(99, 102, 241, 0.5)";
-            ctx.lineWidth = 1.0;
-            ctx.beginPath();
-            for (const seg of visibleSegs) {
-              ctx.moveTo(seg.x1, seg.y1);
-              ctx.lineTo(seg.x2, seg.y2);
-            }
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            ctx.restore();
+          for (let i = 0; i < BRAIN_SVG_PATHS.length; i++) {
+            const d = BRAIN_SVG_PATHS[i];
+            // Stagger: center paths first
+            const match = d.match(/[mM]([\d.]+)\s+([\d.]+)/);
+            const px = match ? parseFloat(match[1]) : 100;
+            const py = match ? parseFloat(match[2]) : 98;
+            const dist = Math.sqrt((px - 100) ** 2 + (py - 98) ** 2);
+            const spatialDelay = Math.min(1, dist / 130) * 0.5;
+            const localReveal = clamp01((meshProgress - spatialDelay) * 3);
+            if (localReveal < 0.01) continue;
 
-            // Text on sierpinski edges
-            ctx.save();
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
+            const path = new Path2D(d);
+            ctx.globalAlpha = localReveal * 0.7;
+            ctx.stroke(path);
+          }
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+
+          // Draw word network — pretext: words flow along contour paths (current language only)
+          if (wordReveal > 0) {
+            // Flatten all contour segments into one array for text layout
+            const allBrainSegs: LineSegment[] = brainContourSegments.flat();
+            const brainFs = 3.2 * mobileFontScale;
+            const brainPlacements = layoutTextOnSegments(
+              formulaTexts.brainMesh, allBrainSegs, brainFs, currentFontFamily,
+              { preserveOrder: true },
+            );
+
+            // Render text along segments
+            const langFont = getFontForLanguage(lang, brainFs);
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
             ctx.direction = textDirection(lang);
-            const langFont = getFontForLanguage(lang, convP.fontSize * scale);
-            for (let si = 0; si < visibleSegs.length; si += 4) {
-              const seg = visibleSegs[si];
-              const mx = (seg.x1 + seg.x2) / 2;
-              const my = (seg.y1 + seg.y2) / 2;
-              const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
-              const words = convText.split(" ");
-              const word = words[si % words.length] || "";
-              if (!word.trim()) continue;
+            for (const p of brainPlacements) {
+              if (!p.text.trim()) continue;
               ctx.save();
-              ctx.translate(mx, my);
-              ctx.rotate(angle);
+              ctx.translate(p.x, p.y);
+              ctx.rotate(p.rotation);
+              ctx.scale(p.scale, p.scale);
               ctx.font = langFont;
-              ctx.globalAlpha = 0.5 + leftProgress * 0.3;
-              ctx.fillStyle = "#818cf8";
-              ctx.fillText(word, 0, 0);
+              ctx.globalAlpha = wordReveal * (0.45 + p.opacity * 0.35);
+              ctx.fillStyle = '#f2f0ec';
+              ctx.fillText(p.text, 0, 0);
               ctx.restore();
             }
-            ctx.restore();
           }
-          ctx.restore();
-        }
 
-        // === RIGHT HEMISPHERE — lSystemTree (organic, amber) ===
-        const rightProgress = easeOutCubic(clamp01((progress - 0.1) * 1.4));
-        if (rightProgress > 0) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.rect(0, -brainH - 10, brainW + 10, brainH * 2 + 20);
-          ctx.clip();
+          // Neural pulse dots
+          if (pulseReveal > 0) {
+            for (let i = 0; i < 60; i++) {
+              const region = PULSE_REGIONS[i % PULSE_REGIONS.length];
+              const angle = (i / 60) * Math.PI * 2;
+              const r = 0.3 + (Math.sin(i * 7.3) * 0.5 + 0.5) * 0.7;
+              const px = region.cx + Math.cos(angle) * region.rx * r;
+              const py = region.cy + Math.sin(angle) * region.ry * r;
+              const phase = (i / 60 + t * 0.8) % 1;
+              const pulse = Math.sin(phase * Math.PI * 2) * 0.5 + 0.5;
+              const size = 0.5 + pulse * 1.5;
+              const alpha = pulse * 0.8 * pulseReveal;
 
-          const treeAngle = lerp(18, 28, rightProgress);
-          const treeStep = lerp(4, 8, rightProgress) * scale;
-          const treeIter = Math.round(lerp(2, 4, rightProgress));
+              if (alpha < 0.01) continue;
 
-          const treeResult = lSystemTree(
-            convText,
-            { angle: treeAngle, stepLength: treeStep, iterations: treeIter, startAngle: -90 },
-            t,
-          );
-
-          if (treeResult.type === "segments") {
-            const visibleCount = Math.floor(treeResult.segments.length * rightProgress);
-            const visibleSegs = treeResult.segments.slice(0, visibleCount);
-
-            // Lines
-            ctx.save();
-            ctx.shadowColor = "rgba(251, 146, 60, 0.6)";
-            ctx.shadowBlur = 10 * scale;
-            ctx.strokeStyle = "rgba(249, 115, 22, 0.5)";
-            ctx.lineWidth = 1.0;
-            ctx.beginPath();
-            for (const seg of visibleSegs) {
-              ctx.moveTo(seg.x1, seg.y1);
-              ctx.lineTo(seg.x2, seg.y2);
-            }
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            ctx.restore();
-
-            // Text on tree branches
-            ctx.save();
-            ctx.textAlign = "left";
-            ctx.textBaseline = "top";
-            ctx.direction = textDirection(lang);
-            const langFont = getFontForLanguage(lang, convP.fontSize * scale);
-            for (let si = 0; si < visibleSegs.length; si += 3) {
-              const seg = visibleSegs[si];
-              const mx = (seg.x1 + seg.x2) / 2;
-              const my = (seg.y1 + seg.y2) / 2;
-              const angle = Math.atan2(seg.y2 - seg.y1, seg.x2 - seg.x1);
-              const words = convText.split(" ");
-              const word = words[si % words.length] || "";
-              if (!word.trim()) continue;
-              ctx.save();
-              ctx.translate(mx, my);
-              ctx.rotate(angle);
-              ctx.font = langFont;
-              ctx.globalAlpha = 0.5 + rightProgress * 0.3;
-              ctx.fillStyle = "#fb923c";
-              ctx.fillText(word, 0, 0);
-              ctx.restore();
-            }
-            ctx.restore();
-          }
-          ctx.restore();
-        }
-
-        // === SYNAPTIC FLASHES along the central fissure ===
-        if (progress > 0.4) {
-          const flashIntensity = (progress - 0.4) / 0.6;
-          for (let i = 0; i < 8; i++) {
-            const fy = (-brainH * 0.7 + i * brainH * 0.2);
-            const phase = Math.sin(t * 4 + i * 1.5) * 0.5 + 0.5;
-            if (phase > 0.6) {
-              const flashAlpha = (phase - 0.6) / 0.4 * flashIntensity;
-              // Left flash (indigo)
               ctx.beginPath();
-              ctx.fillStyle = `rgba(99, 102, 241, ${flashAlpha * 0.7})`;
-              ctx.shadowColor = "#6366f1";
-              ctx.shadowBlur = 8 * scale;
-              ctx.arc(-fissureGap * 0.5, fy, (2 + phase * 2) * scale, 0, Math.PI * 2);
-              ctx.fill();
-              // Right flash (amber)
-              ctx.beginPath();
-              ctx.fillStyle = `rgba(251, 146, 60, ${flashAlpha * 0.7})`;
-              ctx.shadowColor = "#fb923c";
-              ctx.arc(fissureGap * 0.5, fy, (2 + phase * 2) * scale, 0, Math.PI * 2);
+              ctx.arc(px, py, size, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(129, 140, 248, ${alpha})`;
+              ctx.shadowColor = 'rgba(129, 140, 248, 0.8)';
+              ctx.shadowBlur = 2;
               ctx.fill();
               ctx.shadowBlur = 0;
             }
           }
+
+          ctx.restore();
         }
-
-        // Central fissure line — thin bright seam
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 + progress * 0.3})`;
-        ctx.lineWidth = 1 * scale;
-        ctx.setLineDash([4 * scale, 6 * scale]);
-        ctx.moveTo(0, -brainH * 0.75);
-        ctx.lineTo(0, brainH * 0.8);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.restore(); // end globalAlpha
-
-        // === CONVERGENCE DOT — the mind awakening (outside clip) ===
-        if (progress > 0.65) {
-          const dotProgress = (progress - 0.65) / 0.35;
-          const dotSize = (2 + dotProgress * 8) * scale;
-
-          // Bright dot
-          ctx.beginPath();
-          ctx.fillStyle = `rgba(255, 255, 255, ${dotProgress})`;
-          ctx.shadowColor = "#ffffff";
-          ctx.shadowBlur = 30 * scale * dotProgress;
-          ctx.arc(0, 0, dotSize, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.shadowBlur = 0;
-
-          // VIMANA textCircle — "the mind naming what it built"
-          if (dotProgress > 0.4) {
-            const circleAlpha = (dotProgress - 0.4) / 0.6;
-            const vimanaText = VIMANA_WORD[lang] || "VIMANA";
-            const radius = (20 + dotProgress * 25) * scale;
-            ctx.save();
-            ctx.globalAlpha = circleAlpha * 0.8;
-            ctx.font = `${getFontForLanguage(lang, 10 * scale)} ${FONT_CANVAS_DEFAULT}`;
-            ctx.fillStyle = "#ffffff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            const chars = vimanaText.split("");
-            for (let i = 0; i < chars.length; i++) {
-              const angle = (i / chars.length) * Math.PI * 2 - Math.PI / 2 + t * 0.3;
-              ctx.save();
-              ctx.translate(Math.cos(angle) * radius, Math.sin(angle) * radius);
-              ctx.rotate(angle + Math.PI / 2);
-              ctx.fillText(chars[i], 0, 0);
-              ctx.restore();
-            }
-            ctx.restore();
-          }
-        }
-
-        ctx.restore();
       }
 
       // Restore our global transition scale wrapper
@@ -1545,9 +1643,14 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
     return () => {
       cancelAnimationFrame(animationId);
+      brainSvgContainer.remove();
       document.body.classList.remove("act1-scroll-mode");
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("keydown", handleKey);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerUp);
       if (idleTimer) clearTimeout(idleTimer);
     };
   }, [mode, scrollToScene, scrollToSceneProgress]);
@@ -1886,6 +1989,8 @@ function _getCharWidths(text: string, font: string): number[] {
   const key = `${font}|${text}`;
   const cached = _widthCache.get(key);
   if (cached) return cached;
+
+
   _measureCtx.font = font;
   const graphemes = _splitGraphemes(text);
   const widths = graphemes.map((g) => _measureCtx.measureText(g).width);
@@ -2385,6 +2490,8 @@ function renderMorphingRing(
       const pulsePhase = t * 6.5 - i * 0.45;
       const pulse = Math.pow(Math.max(0, Math.sin(pulsePhase)), 4.0) * 0.14;
       const subwooferScale = 1.0 + pulse;
+
+
 
       ctx.save();
       // Apply exact matching ring transforms

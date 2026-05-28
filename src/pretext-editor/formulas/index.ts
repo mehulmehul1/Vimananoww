@@ -12,6 +12,14 @@ import { wordCloud } from './organic/wordCloud';
 import { slimycreature } from './organic/slimycreature';
 import { butterflys } from './organic/butterflys';
 import { symmetryWave } from './organic/symmetryWave';
+import { corticalFold } from './organic/corticalFold';
+import { mycelialWeb } from './organic/mycelialWeb';
+import { brainMesh, brainSurfacePoint } from './organic/brainMesh';
+import { brainStreamlines } from './organic/brainStreamlines';
+import { brainContourText } from './organic/brainContourText';
+import { globalCircuit } from './organic/globalCircuit';
+import { myceliumNetwork } from './organic/myceliumNetwork';
+import { BRAIN_PATHS, BRAIN_WORDS, getCompiledPaths, wordColor, approxPathLength, type WordEntry, type CompiledPath } from './organic/brainWordNet';
 import { sierpinskiTriangle } from './geometric/sierpinskiTriangle';
 import { sierpinskiCarpet } from './geometric/sierpinskiCarpet';
 import { fractalSnowflake } from './geometric/fractalSnowflake';
@@ -32,6 +40,19 @@ export {
   slimycreature,
   butterflys,
   symmetryWave,
+  corticalFold,
+  mycelialWeb,
+  brainMesh,
+  brainSurfacePoint,
+  brainStreamlines,
+  brainContourText,
+  globalCircuit,
+  myceliumNetwork,
+  BRAIN_PATHS,
+  BRAIN_WORDS,
+  getCompiledPaths,
+  wordColor,
+  approxPathLength,
   sierpinskiTriangle,
   sierpinskiCarpet,
   fractalSnowflake,

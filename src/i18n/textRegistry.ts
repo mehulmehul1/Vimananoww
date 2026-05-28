@@ -148,11 +148,11 @@ export const SCENE_CONVERGENCE: Record<Language, SceneTexts> = {
 
 /** Scene 11: NETWORK */
 export const SCENE_NETWORK: Record<Language, SceneTexts> = {
-  en: { headline: 'GLOBAL MIND.', body: 'The biosphere becomes a single integrated circuit. Synapses snap at tree tips in a global flash of neural awakening.', navLabel: 'NETWORK' },
-  hi: { headline: 'वैश्विक मन।', body: 'जैवमंडल एकल एकीकृत परिपथ बन जाता है। तंत्रिका जागरण की वैश्विक चमक में स्नायु जुड़ते हैं।', navLabel: 'जाल' },
-  bn: { headline: 'বিশ্ব মন।', body: 'জীবমণ্ডল একটি অবিচ্ছিন্ন সার্কিট হয়ে ওঠে। স্নায়ু জাগরণের বিশ্বব্যাপী আলোয় সিনাপস জ্বলে ওঠে।', navLabel: 'জাল' },
-  ur: { headline: 'عالمی ذہن۔', body: 'حیاتی کرہ ایک مربوط سرکٹ بن جاتا ہے۔ عصبی بیداری کی عالمی چمک میں سیناپس جھڑتے ہیں۔', navLabel: 'جال' },
-  ta: { headline: 'உலக மனம்.', body: 'உயிர்க்கோளம் ஒரு ஒருங்கிணைந்த சுற்று ஆகிறது. நரம்பு விழிப்பின் உலகளாவிய ஒளியில் நரம்பு முனைகள் ஒளிர்கின்றன.', navLabel: 'வலை' },
+  en: { headline: 'MYCELIUM.', body: 'Beneath the surface, billions of hyphae weave the earth\'s original internet. A silent web of nutrient exchange and chemical signals.', navLabel: 'NETWORK' },
+  hi: { headline: 'माइसिलियम।', body: 'सतह के नीचे, अरबों हाइफ़ा पृथ्वी के मूल इंटरनेट को बुनते हैं। पोषण आदान-प्रदान और रासायनिक संकेतों का मौन जाल।', navLabel: 'जाल' },
+  bn: { headline: 'মাইসিলিয়াম।', body: 'পৃষ্ঠতলের নিচে, কোটি কোটি হাইফা পৃথবীর আদিম ইন্টারনেট বুনে। পুষ্টি আদানপ্রদান ও রাসায়নিক সংকেতের নীরব জাল।', navLabel: 'জাল' },
+  ur: { headline: 'مائسیلیم۔', body: 'سطح کے نیچے، اربوں ہائیفا زمین کے اصل انٹرنیٹ کو بنتے ہیں۔ غذائی تبادلہ اور کیمیکی اشاروں کا خاموش جال۔', navLabel: 'جال' },
+  ta: { headline: 'மைசீலியம்.', body: 'மேற்பரப்பின் கீழ், பில்லியன் நூல்கள் பூமியின் அசல் இணையத்தை நெய்கின்றன. ஊட்டச்சத்து பரிமாற்றம் மற்றும் வேதியியல் சமிக்ஞைகளின் அமைதியான வலை.', navLabel: 'வலை' },
 };
 
 /** All multilingual scene objects in order */
@@ -206,6 +206,16 @@ export const FORMULA_TEXTS: Record<Language, {
   firingDendritic: string;
   /** Convergence / Sierpinski + Spiral */
   convergenceSpiral: string;
+  /** Mycelial Web */
+  mycelialWeb: string;
+  /** Cortical Fold */
+  corticalFold: string;
+  /** 3D Brain Mesh */
+  brainMesh: string;
+  /** Global Circuit */
+  globalCircuit: string;
+  /** Mycelium Network */
+  myceliumNetwork: string;
 }> = {
   en: {
     humCircle: 'VIMANA',
@@ -225,6 +235,11 @@ export const FORMULA_TEXTS: Record<Language, {
     floraMycelium: 'MYCELIAL WEB NETWORKS dendritic transferring resources underground information',
     firingDendritic: 'FIRING NEURON CASCADE DENDRITE ELECTRIC PULSE IGNITION SPARK CHAIN REACTION AWAKENING',
     convergenceSpiral: 'CONVERGENCE SPIRAL SIERPINSKI GOLDEN FIBONACCI LEFT RIGHT BRAIN HEMISPHERE UNITY',
+    mycelialWeb: 'MYCELIUM ROOT NETWORK HYPHA CONNECT RECONNECT NUTRIENT FLOW UNDERGROUND WEB LIFE',
+    corticalFold: 'CORTEX FOLD WRINKLE GYRUS SULCUS TURING PATTERN REACTION DIFFUSION AWARENESS MIND',
+    brainMesh: 'NEURON SYNAPSE CORTEX SULCUS GYRUS FOLD MIND BRAIN CONSCIOUSNESS AWARENESS THOUGHT PULSE',
+    globalCircuit: 'BIOSPHERE CIRCUIT GLOBE SYNAPSE NETWORK NODE CONNECTION PULSE AWARENESS GLOBAL MIND EARTH',
+    myceliumNetwork: 'MYCELIUM HYPHA BRANCH RECONNECT NUTRIENT FLOW UNDERGROUND WEB THREAD SIGNAL EXCHANGE SPORE LIFE',
   },
   hi: {
     humCircle: 'विमान',
@@ -244,6 +259,11 @@ export const FORMULA_TEXTS: Record<Language, {
     floraMycelium: 'माइसीलियल जाल नेटवर्क शाखान्वित संसाधन भूमिगत सूचना',
     firingDendritic: 'जलती तंत्रिका प्रपात शाखान्वित विद्युत स्पंदन प्रज्वलन चेन प्रतिक्रिया जागरण',
     convergenceSpiral: 'अभिसरण सर्पिल सियरपिंस्की स्वर्ण फाइबोनैची बायाँ दायाँ मस्तिष्क एकता',
+    mycelialWeb: 'माइसिलियम जड़ जाल हाइफा जोड़ना पुनः जोड़ना पोषण प्रवाह भूमिगत जाल जीवन',
+    corticalFold: 'प्रांतस्था सिलवट मोड़ गाइरस सल्कस ट्यूरिंग प्रतिमान प्रतिक्रिया विसरण चेतना मन',
+    brainMesh: 'तंत्रिका संबंध प्रांतस्था सल्कस गाइरस मोड़ मन मस्तिष्क चेतना जागरूकता विचार स्पंदन',
+    globalCircuit: 'जैवमंडल परिपथ ग्लोब संबंध जाल नोड जुड़ाव स्पंदन जागरूकता वैश्विक मन पृथ्वी',
+    myceliumNetwork: 'माइसिलियम हाइफ़ा शाखा पुनः जोड़ना पोषण प्रवाह भूमिगत जाल धागा संकेत आदान-प्रदान बीजाणु जीवन',
   },
   bn: {
     humCircle: 'বিমান',
@@ -263,6 +283,11 @@ export const FORMULA_TEXTS: Record<Language, {
     floraMycelium: 'মাইসিলিয়াল জাল নেটওয়ার্ক শাখাযুক্ত সম্পদ ভূগর্ভ',
     firingDendritic: 'জ্বলন্ত স্নায়ু জলপ্রপাত শাখাযুক্ত বিদ্যুৎ স্পন্দন জ্বালানি শৃঙ্খল প্রতিক্রিয়া',
     convergenceSpiral: 'অভিসরণ সর্পিল সিয়ারপিনস্কি স্বর্ণ ফিবোনাচ্চি বাম ডান মস্তিষ্ক ঐক্য',
+    mycelialWeb: 'মাইসিলিয়াম মূল জাল হাইফা সংযোগ পুনঃসংযোগ পুষ্টি প্রবাহ ভূগর্ভস্থ জাল জীবন',
+    corticalFold: 'কর্টেক্স ভাঁজ কুঁচকি গাইরাস সালকাস টিউরিং প্যাটার্ন বিক্রিয়া বিসরণ সচেতনতা',
+    brainMesh: 'স্নায়ু সংযোগ কর্টেক্স সালকাস গাইরাস ভাঁজ মন মস্তিষ্ক সচেতনতা চিন্তা স্পন্দন',
+    globalCircuit: 'জীবমণ্ডল বৃত্ত গ্লোব সংযোগ জাল নোড সংযোগ স্পন্দন সচেতনতা বিশ্ব মন পৃথিবী',
+    myceliumNetwork: 'মাইসিলিয়াম হাইফা শাখা পুনঃসংযোগ পুষ্টি প্রবাহ ভূগর্ভস্থ জাল সুতা সংকেত আদানপ্রদান বীজাণু জীবন',
   },
   ur: {
     humCircle: 'وِمان',
@@ -282,6 +307,11 @@ export const FORMULA_TEXTS: Record<Language, {
     floraMycelium: 'مائسیلیل جال نیٹ ورک شاخوں والا وسائل زیر زمین',
     firingDendritic: 'جلتی عصبی آبشار شاخوں والی بجلی موج اور شعلہ زنجیر رد عمل بیداری',
     convergenceSpiral: 'اجتماع مارپیچ سیرپنسکی سنہری فبونچی بائیں دائیں دماغ اتحاد',
+    mycelialWeb: 'مائسیلیم جڑ جال ہائیفا جوڑنا دوبارہ جوڑنا غذائی سیراب زیر زمین جال زندگی',
+    corticalFold: 'دیماغی پرت سلوٹ گائرس سلکس ٹیورنگ پیٹرن رد عمل پھیلاؤ شعور ذہن',
+    brainMesh: 'عصب ربط دماغی پرت سلکس گائرس سلوٹ ذہن دماغ شعور سوچ دھڑکن',
+    globalCircuit: 'حیاتی کورہ مدار گلوب ربط جال نوڑا جوڑ دھڑکن شعور عالمی ذہن زمین',
+    myceliumNetwork: 'مائسیلیم ہائیفا شاخ دوبارہ جوڑنا غذائی سیراب زیر زمین جال دھاگہ اشارہ تبادلہ بیج زندگی',
   },
   ta: {
     humCircle: 'விமானம்',
@@ -301,6 +331,11 @@ export const FORMULA_TEXTS: Record<Language, {
     floraMycelium: 'பூஞ்சை வலை வலையமைப்பு கிளைக்கும் வளங்கள் நிலத்தடி தகவல்',
     firingDendritic: 'எரியும் நரம்பு நீர்வீழ்ச்சி கிளைக்கும் மின்சாரம் தூண்டுதல் தொடர் எதிர்வினை விழிப்பு',
     convergenceSpiral: 'ஒருங்கிணைவு சுருள் சியர்பின்ஸ்கி தங்கம் பிபொனாச்சி இடது வலது மூளை ஒற்றுமை',
+    mycelialWeb: 'பூஞ்சை வேர் வலை நூல் இணைப்பு மீண்டும் இணைப்பு ஊட்டச்சத்து ஓட்டம் நிலத்தடி வலை வாழ்க்கை',
+    corticalFold: 'புறணி மடிப்பு சுருக்கம் கைரஸ் சல்கஸ் டூரிங் வடிவம் வினை பரவல் உணர்வு மனம்',
+    brainMesh: 'நரம்பு இணைப்பு புறணி சல்கஸ் கைரஸ் மடிப்பு மனம் மூளை உணர்வு சிந்தனை துடிப்பு',
+    globalCircuit: 'உயிர்க்கோளம் சுற்று உலகம் இணைப்பு வலை முனை இணைப்பு துடிப்பு உணர்வு உலக மனம் பூமி',
+    myceliumNetwork: 'மைசீலியம் நூல் கிளை மீண்டும் இணைப்பு ஊட்டச்சத்து ஓட்டம் நிலத்தடி வலை நூல் சமிக்ஞை பரிமாற்றம் விதை வாழ்க்கை',
   },
 };
 
