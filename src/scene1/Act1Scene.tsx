@@ -868,7 +868,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
           angle: Math.atan2(dy, dx),
           length: Math.sqrt(dx * dx + dy * dy),
-          depth: 0,
+          depth: 1000, // Match brainContourText — depthScale=0.2 gives 4.5× text space
         });
       }
       return segments;
