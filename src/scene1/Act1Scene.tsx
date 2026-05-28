@@ -857,7 +857,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       brainSvgContainer.appendChild(el);
       const totalLen = el.getTotalLength();
       const segments: LineSegment[] = [];
-      const steps = Math.max(8, Math.floor(totalLen / 3));
+      const steps = Math.max(8, Math.floor(totalLen / 6));
       for (let s = 0; s < steps; s++) {
         const t1 = (s / steps) * totalLen;
         const t2 = ((s + 1) / steps) * totalLen;
