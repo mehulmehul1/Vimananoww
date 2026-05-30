@@ -464,6 +464,7 @@ const SCENES: SceneDef[] = [
     origin: "the first motion",
     duration: 6,
   },
+<<<<<<< HEAD
   {
     phaseId: "15",
     navLabel: "🔪 CHISEL",
@@ -477,9 +478,11 @@ const SCENES: SceneDef[] = [
     origin: "the first mark",
     duration: 10,
   },
+=======
+>>>>>>> origin/main
 ];
 
-const TOTAL_SCENES = SCENES.length; // Local dev: all scenes active (Netlify stays at 4 via git)
+const TOTAL_SCENES = 4; // Netlify production: scenes 0-3 only. Local dev: change to SCENES.length
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -1695,6 +1698,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
       // === THE BRUSH (scene 14) ===
       if (renderScene === 14) {
+<<<<<<< HEAD
         ctx.save();
         ctx.translate(cx, cy);
 
@@ -1757,11 +1761,33 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
               ctx.fillText(p.text, 0, 0);
               ctx.restore();
             }
+=======
+        const brushP = paramsRef.current.brush;
+        ctx.save();
+        ctx.translate(cx, cy);
+        const result = brushStroke("", {
+          streamCount: 18,
+          streamWidth: 240,
+          waveAmplitude: 120,
+        }, t);
+        if (result.type === "segments") {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          for (const s of result.segments) {
+            const d = 1 - s.depth;
+            ctx.beginPath();
+            ctx.moveTo(s.x1, s.y1);
+            ctx.lineTo(s.x2, s.y2);
+            ctx.lineWidth = 0.5 + d * 2;
+            ctx.strokeStyle = `rgba(0,140,255,${0.2 + d * 0.8})`;
+            ctx.stroke();
+>>>>>>> origin/main
           }
         }
         ctx.restore();
       }
 
+<<<<<<< HEAD
       // === THE CHISEL (scene 15) — Arched Column with Cycling Ornamentation ===
       // Three ornamental styles cycle on loop. Each fills a centered pointed-arch
       // column with dense connected tiling. Text flows via @chenglou/pretext.
@@ -2193,6 +2219,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
+=======
+>>>>>>> origin/main
       // Restore our global transition scale wrapper
       ctx.restore();
 
