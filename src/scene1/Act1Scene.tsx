@@ -493,7 +493,7 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = SCENES.length; // All scenes 0-16 active
+const TOTAL_SCENES = 4; // Scenes 0-3 live (full 17 scenes available)
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
