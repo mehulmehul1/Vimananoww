@@ -27,6 +27,7 @@ import {
   brainContourText,
   globalCircuit,
   myceliumNetwork,
+  brushStroke,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
@@ -450,12 +451,28 @@ const SCENES: SceneDef[] = [
     origin: "hemispheric convergence",
     duration: 8,
   },
+  {
+    phaseId: "14",
+    navLabel: "🖌 BRUSH",
+    headline: "THE BRUSH",
+    body: "Flow becomes gesture.",
+    formula: "brushStroke / flowing ink",
+    status: "wave memory",
+    frequency: "1666.66 Hz",
+    amplitude: "1.000",
+    coordinates: "14 00 00.00 N / 14 00 00.00 E",
+    origin: "the first motion",
+    duration: 6,
+  },
 ];
 
-const TOTAL_SCENES = SCENES.length; // Local dev: all scenes active (Netlify stays at 4 via git)
+const TOTAL_SCENES = 4; // Netlify production: scenes 0-3 only. Local dev: change to SCENES.length
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
+}
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 function clamp01(value: number): number {
@@ -900,6 +917,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (nextScene >= 5) {
         if (idleTimer) clearTimeout(idleTimer);
         settledRef.current = false;
+        settledTimeRef.current = 0;
         idleTimer = setTimeout(() => {
           settledRef.current = true;
         }, 1000);
@@ -931,7 +949,11 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         isScrollMode && settledRef.current && currentScene >= 5;
 
       if (isScrollMode) {
-        if (weatherSettled) {
+        if (weatherSettled && settledTimeRef.current < sceneDef.duration) {
+          // Initialize from current scroll progress on first settled frame
+          if (settledTimeRef.current === 0) {
+            settledTimeRef.current = progressRef.current * sceneDef.duration;
+          }
           settledTimeRef.current = Math.min(
             sceneDef.duration,
             settledTimeRef.current + dt,
@@ -1169,8 +1191,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 5) {
         // FERN — fractal fern with wind sway
         ctx.save();
-        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFloraP = easeOutCubic(floraP);
+        const easedFloraP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy + 120 * scale);
         const fernP = paramsRef.current.fern;
@@ -1192,8 +1213,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 6) {
         // TREE — L-system tree with wind sway
         ctx.save();
-        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFloraP = easeOutCubic(floraP);
+        const easedFloraP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy + 160 * scale);
         const lsysP = paramsRef.current.lsystem;
@@ -1215,8 +1235,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 7) {
         // CRYSTAL — dendritic crystal with rotation
         ctx.save();
-        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFloraP = easeOutCubic(floraP);
+        const easedFloraP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         const crystP = paramsRef.current.crystal;
@@ -1241,8 +1260,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 8) {
         // BUTTERFLY — chaotic attractor
         ctx.save();
-        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFaunaP = easeOutCubic(faunaP);
+        const easedFaunaP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
@@ -1258,8 +1276,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 9) {
         // WAVE — symmetric wave flocking
         ctx.save();
-        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFaunaP = easeOutCubic(faunaP);
+        const easedFaunaP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
@@ -1275,8 +1292,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 10) {
         // CREATURE — slimy creature emergent
         ctx.save();
-        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFaunaP = easeOutCubic(faunaP);
+        const easedFaunaP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
@@ -1297,46 +1313,119 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.scale(mycP.scale, mycP.scale);
 
         const mycText = formulaTexts.myceliumNetwork;
-        const mycProgress = easeOutCubic(clamp01(progress * 1.6));
+        // Growth driven by scroll progress — linear for smooth scroll mapping
+        const mycProgress = clamp01(progress);
 
         if (mycProgress > 0) {
-          const mycResult = myceliumNetwork(mycText, {
-            nodes: mycP.nodes, branches: mycP.branches,
-            depth: mycP.depth, stepLength: mycP.stepLength,
-            angleSpread: mycP.angleSpread, lengthDecay: mycP.lengthDecay,
-            reconnectDist: mycP.reconnectDist, spread: mycP.spread,
-          }, t);
+          // Cache formula result — only regenerate on param change (sway is cheap canvas transform)
+          const mycParamKey = `${mycP.nodes}-${mycP.branches}-${mycP.depth}-${mycP.stepLength}-${mycP.angleSpread}-${mycP.lengthDecay}-${mycP.reconnectDist}-${mycP.spread}`;
+          if (!(window as any)._mycFormulaCache || (window as any)._mycFormulaKey !== mycParamKey) {
+            (window as any)._mycFormulaResult = myceliumNetwork(mycText, {
+              nodes: mycP.nodes, branches: mycP.branches,
+              depth: mycP.depth, stepLength: mycP.stepLength,
+              angleSpread: mycP.angleSpread, lengthDecay: mycP.lengthDecay,
+              reconnectDist: mycP.reconnectDist, spread: mycP.spread,
+            }, 0);
+            (window as any)._mycFormulaKey = mycParamKey;
+          }
+          const mycResult = (window as any)._mycFormulaResult;
 
           if (mycResult.type === "segments") {
             const visibleCount = Math.floor(mycResult.segments.length * mycProgress);
-            const allSegs = mycResult.segments.slice(0, visibleCount);
 
-            // Split by depth: main hyphae (depth <= maxDepth), reconnection threads, node crosses
-            const maxD = mycP.depth ?? 4;
-            const hyphaeSegs = allSegs.filter(s => (s.depth ?? 0) <= maxD);
-            const webSegs = allSegs.filter(s => (s.depth ?? 0) > maxD && (s.depth ?? 0) <= maxD + 1);
-            const nodeSegs = allSegs.filter(s => (s.depth ?? 0) > maxD + 1);
+            // Split ALL segments by depth (layout on full set, not sliced)
+            const maxD = mycP.depth ?? 3;
+            const hyphaeSegs = (mycResult.segments as LineSegment[])
+              .filter((s: LineSegment) => (s.depth ?? 0) <= maxD)
+              .sort((a: LineSegment, b: LineSegment) => (a.depth ?? 0) - (b.depth ?? 0));
+            const webSegs = (mycResult.segments as LineSegment[])
+              .filter((s: LineSegment) => (s.depth ?? 0) > maxD && (s.depth ?? 0) <= maxD + 1)
+              .sort((a: LineSegment, b: LineSegment) => (a.depth ?? 0) - (b.depth ?? 0));
 
-            // Main hyphae — green-gold with depth-based weight
-            const mycPlacements = layoutTextOnSegments(mycText, hyphaeSegs, mycP.fontSize, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(hyphaeSegs, mycPlacements, "rgba(180, 160, 60, 0.3)", 1.2, "#e8d882", true, mycP.fontSize);
+            // Visible subsets for drawing only
+            const visHyphae = hyphaeSegs.slice(0, Math.floor(hyphaeSegs.length * mycProgress));
+            const visWeb = webSegs.slice(0, Math.floor(webSegs.length * mycProgress));
 
-            // Reconnection web threads — faint, thin
-            if (webSegs.length > 0) {
-              const webPlacements = layoutTextOnSegments(mycText, webSegs, mycP.fontSize * 0.7, currentFontFamily, { preserveOrder: true });
-              renderFormulaWithGlow(webSegs, webPlacements, "rgba(160, 180, 100, 0.12)", 0.4, "#c8d48a", false, mycP.fontSize * 0.7);
+            // Cache layout results — only recalculate when params change
+            const mycCacheKey = `${mycP.nodes}-${mycP.branches}-${mycP.depth}-${mycP.stepLength}-${mycP.fontSize}`;
+            if (!(window as any)._mycLayoutCache || (window as any)._mycLayoutCacheKey !== mycCacheKey) {
+              (window as any)._mycHyphaePlacements = layoutTextOnSegments(mycText, hyphaeSegs, mycP.fontSize, currentFontFamily, { preserveOrder: true });
+              (window as any)._mycWebPlacements = webSegs.length > 0 ? layoutTextOnSegments(mycText, webSegs, mycP.fontSize * 0.7, currentFontFamily, { preserveOrder: true }) : [];
+              (window as any)._mycLayoutCacheKey = mycCacheKey;
+              (window as any)._mycLayoutCache = true;
+            }
+            const mycPlacements = (window as any)._mycHyphaePlacements;
+            const webPlacements = (window as any)._mycWebPlacements;
+
+            // Main hyphae — batched stroke, no per-segment state changes
+            ctx.strokeStyle = "rgba(200, 180, 80, 0.35)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            for (const s of visHyphae) {
+              ctx.moveTo(s.x1, s.y1);
+              ctx.lineTo(s.x2, s.y2);
+            }
+            ctx.stroke();
+
+            // Text on hyphae — only show for visible branches
+            const langFont = getFontForLanguage(lang, mycP.fontSize);
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.direction = textDirection(lang);
+            ctx.font = langFont;
+            ctx.fillStyle = "#e8d882";
+            const hyphTextCount = Math.floor(mycPlacements.length * mycProgress);
+            for (let pi = 0; pi < hyphTextCount; pi++) {
+              const p = mycPlacements[pi];
+              if (!p.text.trim()) continue;
+              ctx.save();
+              ctx.translate(p.x, p.y);
+              ctx.rotate(p.rotation);
+              ctx.scale(p.scale, p.scale);
+              ctx.globalAlpha = 0.55 + p.opacity * 0.35;
+              ctx.fillText(p.text, 0, 0);
+              ctx.restore();
             }
 
-            // Nutrient pulses — traveling along hyphae (batched, no per-dot shadow)
+            // Reconnection web — faint, no text (saves measurement)
+            if (visWeb.length > 0) {
+              ctx.strokeStyle = "rgba(160, 180, 100, 0.12)";
+              ctx.lineWidth = 0.4;
+              ctx.beginPath();
+              for (const s of visWeb) {
+                ctx.moveTo(s.x1, s.y1);
+                ctx.lineTo(s.x2, s.y2);
+              }
+              ctx.stroke();
+              // Faint web text — only for visible web
+              const webTextCount = Math.floor(webPlacements.length * mycProgress);
+              if (webTextCount > 0) {
+                const webFont = getFontForLanguage(lang, mycP.fontSize * 0.7);
+                ctx.font = webFont;
+                ctx.fillStyle = "#c8d48a";
+                for (let pi = 0; pi < webTextCount; pi++) {
+                  const p = webPlacements[pi];
+                  if (!p.text.trim()) continue;
+                  ctx.save();
+                  ctx.translate(p.x, p.y);
+                  ctx.rotate(p.rotation);
+                  ctx.scale(p.scale, p.scale);
+                  ctx.globalAlpha = 0.3 + p.opacity * 0.2;
+                  ctx.fillText(p.text, 0, 0);
+                  ctx.restore();
+                }
+              }
+            }
+
+            // Nutrient pulses — batched, skip every other segment
             const pulseCount = 3;
-            ctx.save();
             for (let w = 0; w < pulseCount; w++) {
               const wavePhase = ((t * 0.4 + w / pulseCount) % 1);
               const wavePos = wavePhase * hyphaeSegs.length;
               const waveSpread = 30 * scale;
 
               ctx.beginPath();
-              for (let si = 0; si < hyphaeSegs.length; si += 4) {
+              for (let si = 0; si < hyphaeSegs.length; si += 6) {
                 const dist = Math.abs(si - wavePos);
                 if (dist > waveSpread) continue;
 
@@ -1351,36 +1440,39 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
                 ctx.moveTo(mx + r, my);
                 ctx.arc(mx, my, r, 0, Math.PI * 2);
               }
-              ctx.fillStyle = `rgba(232, 216, 130, 0.5)`;
+              ctx.fillStyle = "rgba(232, 216, 130, 0.5)";
               ctx.fill();
             }
-            ctx.restore();
 
-            // Mycorrhizal nodes — bright junction points
+            // Mycorrhizal nodes — cheap glow (no shadowBlur)
             if (progress > 0.3) {
               const nodeIntensity = (progress - 0.3) / 0.7;
-              for (let ni = 0; ni < 15; ni++) {
+              for (let ni = 0; ni < 8; ni++) {
                 const phase = Math.sin(t * 1.5 + ni * 2.1) * 0.5 + 0.5;
                 if (phase < 0.4) continue;
 
                 const alpha = (phase - 0.4) / 0.6 * nodeIntensity;
-                const nodeSeg = hyphaeSegs[Math.floor(ni * hyphaeSegs.length / 15)];
+                const nodeSeg = hyphaeSegs[Math.floor(ni * hyphaeSegs.length / 8)];
                 if (!nodeSeg) continue;
 
                 const mx = (nodeSeg.x1 + nodeSeg.x2) / 2;
                 const my2 = (nodeSeg.y1 + nodeSeg.y2) / 2;
+                const r = (1.5 + alpha * 3) * scale;
 
+                // Glow halo
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(232, 216, 130, ${alpha * 0.18})`;
+                ctx.arc(mx, my2, r * 3, 0, Math.PI * 2);
+                ctx.fill();
+                // Core dot
                 ctx.beginPath();
                 ctx.fillStyle = `rgba(255, 240, 180, ${alpha * 0.9})`;
-                ctx.shadowColor = "rgba(232, 216, 130, 0.9)";
-                ctx.shadowBlur = 18 * scale * alpha;
-                ctx.arc(mx, my2, (1.5 + alpha * 3) * scale, 0, Math.PI * 2);
+                ctx.arc(mx, my2, r, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.shadowBlur = 0;
               }
             }
 
-            // Underground aura — warm earth glow
+            // Underground aura
             if (progress > 0.5) {
               const auraIntensity = (progress - 0.5) / 0.5;
               ctx.save();
@@ -1527,36 +1619,14 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           ctx.translate(offsetX, offsetY);
           ctx.scale(viewScale, viewScale);
 
-          // Draw brain contour paths
-          ctx.strokeStyle = 'rgba(241, 241, 242, 0.5)';
-          ctx.lineWidth = 0.5;
-          ctx.setLineDash([0.6, 0.6]);
-
-          ctx.lineCap = 'round';
-
-          for (let i = 0; i < BRAIN_SVG_PATHS.length; i++) {
-            const d = BRAIN_SVG_PATHS[i];
-            // Stagger: center paths first
-            const match = d.match(/[mM]([\d.]+)\s+([\d.]+)/);
-            const px = match ? parseFloat(match[1]) : 100;
-            const py = match ? parseFloat(match[2]) : 98;
-            const dist = Math.sqrt((px - 100) ** 2 + (py - 98) ** 2);
-            const spatialDelay = Math.min(1, dist / 130) * 0.5;
-            const localReveal = clamp01((meshProgress - spatialDelay) * 3);
-            if (localReveal < 0.01) continue;
-
-            const path = new Path2D(d);
-            ctx.globalAlpha = localReveal * 0.7;
-            ctx.stroke(path);
-          }
-          ctx.setLineDash([]);
+          // Dotted contour lines disabled — text-only brain
           ctx.globalAlpha = 1;
 
           // Draw word network — pretext: words flow along contour paths (current language only)
           if (wordReveal > 0) {
             // Flatten all contour segments into one array for text layout
             const allBrainSegs: LineSegment[] = brainContourSegments.flat();
-            const brainFs = 3.2 * mobileFontScale;
+            const brainFs = 9.5 * mobileFontScale;
             const brainPlacements = layoutTextOnSegments(
               formulaTexts.brainMesh, allBrainSegs, brainFs, currentFontFamily,
               { preserveOrder: true },
@@ -1608,6 +1678,32 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
           ctx.restore();
         }
+      }
+
+      // === THE BRUSH (scene 14) ===
+      if (renderScene === 14) {
+        const brushP = paramsRef.current.brush;
+        ctx.save();
+        ctx.translate(cx, cy);
+        const result = brushStroke("", {
+          streamCount: 18,
+          streamWidth: 240,
+          waveAmplitude: 120,
+        }, t);
+        if (result.type === "segments") {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          for (const s of result.segments) {
+            const d = 1 - s.depth;
+            ctx.beginPath();
+            ctx.moveTo(s.x1, s.y1);
+            ctx.lineTo(s.x2, s.y2);
+            ctx.lineWidth = 0.5 + d * 2;
+            ctx.strokeStyle = `rgba(0,140,255,${0.2 + d * 0.8})`;
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
       }
 
       // Restore our global transition scale wrapper

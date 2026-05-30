@@ -76,6 +76,11 @@ export interface SceneParams {
     reconnectDist: number; spread: number;
     fontSize: number; scale: number;
   };
+  brush: {
+    strokeCount: number; maxLength: number; maxWidth: number;
+    bristleCount: number; spiralTightness: number; jitter: number;
+    fontSize: number; scale: number;
+  };
 }
 
 // Extended params with global controls
@@ -105,6 +110,7 @@ export const DEFAULT_PARAMS: AllSceneParams = {
   brainMesh: { foldDepth: 0.18, foldFreq: 5, fissureDepth: 0.22, resU: 18, resV: 16, scale: 1, rotSpeed: 0.04, tiltX: 0.35, tiltY: 0, fontSize: 7, autoRotate: true, brainRenderer: 0 },
   globalCircuit: { rings: 10, meridians: 14, connections: 30, nodeCount: 40, scale: 1, rotSpeed: 0.15, tiltX: 0.35, fontSize: 7 },
   myceliumNetwork: { nodes: 5, branches: 5, depth: 3, stepLength: 50, angleSpread: 0.55, lengthDecay: 0.62, reconnectDist: 65, spread: 220, fontSize: 7, scale: 1 },
+  brush: { strokeCount: 26, maxLength: 180, maxWidth: 110, bristleCount: 1, spiralTightness: 0.8, jitter: 0, fontSize: 0, scale: 1 },
 };
 
 // ─── Scene → Param Group Mapping ─────────────────────────────────────
@@ -123,6 +129,7 @@ const SCENE_GROUPS: Record<number, string[]> = {
   10: ["mycelial"],
   11: ["myceliumNetwork"],
   12: ["brainMesh"],
+  14: ["brush"],
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -144,6 +151,7 @@ const GROUP_LABELS: Record<string, string> = {
   brainMesh: "🧠 3D Brain Mesh",
   globalCircuit: "🌐 Global Circuit",
   myceliumNetwork: "🍄 Mycelium Network",
+  brush: "🖌 Brush Stroke",
 };
 
 // ─── Save / Load ─────────────────────────────────────────────────────

@@ -23,6 +23,7 @@ import { BRAIN_PATHS, BRAIN_WORDS, getCompiledPaths, wordColor, approxPathLength
 import { sierpinskiTriangle } from './geometric/sierpinskiTriangle';
 import { sierpinskiCarpet } from './geometric/sierpinskiCarpet';
 import { fractalSnowflake } from './geometric/fractalSnowflake';
+import { brushStroke } from './organic/brushStroke';
 
 export * from './types';
 export * from './helpers';
@@ -56,6 +57,7 @@ export {
   sierpinskiTriangle,
   sierpinskiCarpet,
   fractalSnowflake,
+  brushStroke,
 };
 
 export const TEMPLATES: Template[] = [
