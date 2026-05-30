@@ -81,6 +81,12 @@ export interface SceneParams {
     bristleCount: number; spiralTightness: number; jitter: number;
     fontSize: number; scale: number;
   };
+  knitting: {
+    stitchWidth: number; stitchHeight: number; rows: number;
+    stitchesPerRow: number; needleLength: number; cableFrequency: number;
+    cableOffset: number; yarnSlack: number; tension: number;
+    progress: number; fontSize: number; scale: number;
+  };
 }
 
 // Extended params with global controls
@@ -111,6 +117,7 @@ export const DEFAULT_PARAMS: AllSceneParams = {
   globalCircuit: { rings: 10, meridians: 14, connections: 30, nodeCount: 40, scale: 1, rotSpeed: 0.15, tiltX: 0.35, fontSize: 7 },
   myceliumNetwork: { nodes: 5, branches: 5, depth: 3, stepLength: 50, angleSpread: 0.55, lengthDecay: 0.62, reconnectDist: 65, spread: 220, fontSize: 7, scale: 1 },
   brush: { strokeCount: 26, maxLength: 180, maxWidth: 110, bristleCount: 1, spiralTightness: 0.8, jitter: 0, fontSize: 0, scale: 1 },
+  knitting: { stitchWidth: 24, stitchHeight: 20, rows: 12, stitchesPerRow: 16, needleLength: 160, cableFrequency: 0, cableOffset: 3, yarnSlack: 0.2, tension: 0.85, progress: 1.0, fontSize: 6, scale: 1 },
 };
 
 // ─── Scene → Param Group Mapping ─────────────────────────────────────
@@ -130,6 +137,7 @@ const SCENE_GROUPS: Record<number, string[]> = {
   11: ["myceliumNetwork"],
   12: ["brainMesh"],
   14: ["brush"],
+  16: ["knitting"],
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -152,6 +160,7 @@ const GROUP_LABELS: Record<string, string> = {
   globalCircuit: "🌐 Global Circuit",
   myceliumNetwork: "🍄 Mycelium Network",
   brush: "🖌 Brush Stroke",
+  knitting: "🧶 Knitting Stitch",
 };
 
 // ─── Save / Load ─────────────────────────────────────────────────────

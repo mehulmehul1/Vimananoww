@@ -24,6 +24,7 @@ import { sierpinskiTriangle } from './geometric/sierpinskiTriangle';
 import { sierpinskiCarpet } from './geometric/sierpinskiCarpet';
 import { fractalSnowflake } from './geometric/fractalSnowflake';
 import { brushStroke } from './organic/brushStroke';
+import { knittingStitch } from './organic/knittingStitch';
 
 export * from './types';
 export * from './helpers';
@@ -58,6 +59,7 @@ export {
   sierpinskiCarpet,
   fractalSnowflake,
   brushStroke,
+  knittingStitch,
 };
 
 export const TEMPLATES: Template[] = [
@@ -158,6 +160,13 @@ export const TEMPLATES: Template[] = [
     description: 'Text flows along symmetric wave patterns',
     defaultParams: { animationSpeed: 30, ringOffset: 12 },
     formula: symmetryWave,
+    sortSegments: false,
+  },
+  {
+    name: 'Knitting Stitch',
+    description: 'Text flows along yarn through V-shaped knit stitches with needles',
+    defaultParams: { stitchWidth: 24, stitchHeight: 20, rows: 12, stitchesPerRow: 16, needleLength: 160, cableFrequency: 0, cableOffset: 3, yarnSlack: 0.2, tension: 0.85, progress: 1.0 },
+    formula: knittingStitch,
     sortSegments: false,
   },
 ];

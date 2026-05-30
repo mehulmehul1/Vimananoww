@@ -28,6 +28,7 @@ import {
   globalCircuit,
   myceliumNetwork,
   brushStroke,
+  knittingStitch,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
@@ -477,9 +478,22 @@ const SCENES: SceneDef[] = [
     origin: "the first mark",
     duration: 10,
   },
+  {
+    phaseId: "16",
+    navLabel: "🧶 KNITTING",
+    headline: "THE KNITTING",
+    body: "Thread becomes fabric. Each loop holds the memory of the last, each stitch a promise to the next.",
+    formula: "knittingStitch / V-stitch fabric",
+    status: "textile form",
+    frequency: "2222.22 Hz",
+    amplitude: "1.000",
+    coordinates: "16 00 00.00 N / 16 00 00.00 E",
+    origin: "interlocking loops",
+    duration: 8,
+  },
 ];
 
-const TOTAL_SCENES = SCENES.length; // All scenes 0-15 active
+const TOTAL_SCENES = SCENES.length; // All scenes 0-16 active
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -2191,6 +2205,157 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.globalAlpha = 0.4 + 0.4 * Math.abs(Math.sin(t * 1.3));
         ctx.fillText(LABELS[styleIdx], 0, colBottom + 14 * sc);
         ctx.globalAlpha = 1;
+
+        ctx.restore();
+      }
+
+      // === THE KNITTING (scene 16) — Fluid fabric with animated needles ===
+      if (renderScene === 16) {
+        const knitP = theatre.knitting;
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        const knitText = formulaTexts.knitting;
+        const knitScale = Math.min(w, h) / 900;
+        ctx.scale(knitScale, knitScale);
+
+        // Gentle fabric sway (simulates hanging textile)
+        const sway = Math.sin(t * 0.3) * 0.015;
+        const swayY = Math.sin(t * 0.4) * 3;
+        ctx.rotate(sway);
+        ctx.translate(0, swayY);
+
+        // Scroll-driven progress
+        const knitProgress = clamp01(progress);
+
+        const result = knittingStitch(knitText, {
+          stitchWidth: knitP.stitchWidth,
+          stitchHeight: knitP.stitchHeight,
+          rows: knitP.rows,
+          stitchesPerRow: knitP.stitchesPerRow,
+          needleLength: knitP.needleLength,
+          cableFrequency: knitP.cableFrequency,
+          cableOffset: knitP.cableOffset,
+          yarnSlack: knitP.yarnSlack,
+          tension: knitP.tension,
+          progress: knitProgress,
+        }, t);
+
+        if (result.type === "segments") {
+          const yarnSegs: LineSegment[] = [];
+          const needleSegs: LineSegment[] = [];
+
+          for (const s of result.segments) {
+            if (s.visualOnly) {
+              needleSegs.push(s);
+            } else {
+              yarnSegs.push(s);
+            }
+          }
+
+          // Draw needles (warm wood with shadow)
+          if (needleSegs.length > 0) {
+            // Needle shadow
+            ctx.strokeStyle = "rgba(100, 80, 50, 0.15)";
+            ctx.lineWidth = 4;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            for (const s of needleSegs) {
+              ctx.moveTo(s.x1 + 2, s.y1 + 2);
+              ctx.lineTo(s.x2 + 2, s.y2 + 2);
+            }
+            ctx.stroke();
+
+            // Needle body
+            ctx.strokeStyle = "rgba(190, 155, 100, 0.9)";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (const s of needleSegs) {
+              ctx.moveTo(s.x1, s.y1);
+              ctx.lineTo(s.x2, s.y2);
+            }
+            ctx.stroke();
+
+            // Needle highlight
+            ctx.strokeStyle = "rgba(230, 210, 170, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (const s of needleSegs) {
+              ctx.moveTo(s.x1, s.y1 - 1);
+              ctx.lineTo(s.x2, s.y2 - 1);
+            }
+            ctx.stroke();
+          }
+
+          // Draw yarn path (fluid stitch lines)
+          if (yarnSegs.length > 0) {
+            // Yarn shadow (offset, faint)
+            ctx.strokeStyle = tone.isVoid
+              ? "rgba(80, 60, 30, 0.1)"
+              : "rgba(60, 40, 20, 0.08)";
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            for (const s of yarnSegs) {
+              ctx.moveTo(s.x1 + 1, s.y1 + 1);
+              ctx.lineTo(s.x2 + 1, s.y2 + 1);
+            }
+            ctx.stroke();
+
+            // Main yarn
+            ctx.strokeStyle = tone.isVoid
+              ? "rgba(200, 175, 130, 0.4)"
+              : "rgba(110, 85, 55, 0.35)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (const s of yarnSegs) {
+              ctx.moveTo(s.x1, s.y1);
+              ctx.lineTo(s.x2, s.y2);
+            }
+            ctx.stroke();
+
+            // Yarn highlight (gives thread depth)
+            ctx.strokeStyle = tone.isVoid
+              ? "rgba(245, 235, 210, 0.18)"
+              : "rgba(255, 250, 240, 0.22)";
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            for (const s of yarnSegs) {
+              ctx.moveTo(s.x1 - 0.3, s.y1 - 0.5);
+              ctx.lineTo(s.x2 - 0.3, s.y2 - 0.5);
+            }
+            ctx.stroke();
+          }
+
+          // Layout text along yarn (preserve thread order)
+          const placements = layoutTextOnSegments(
+            knitText, yarnSegs, knitP.fontSize, currentFontFamily,
+            { preserveOrder: true },
+          );
+
+          // Render text
+          const langFont = getFontForLanguage(lang, knitP.fontSize);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          ctx.direction = textDirection(lang);
+          ctx.font = langFont;
+
+          for (const p of placements) {
+            if (!p.text.trim()) continue;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.scale(p.scale, p.scale);
+            ctx.globalAlpha = 0.6 + p.opacity * 0.4;
+            ctx.fillStyle = tone.isVoid
+              ? "rgb(235, 218, 185)"
+              : "rgb(55, 40, 25)";
+            ctx.fillText(p.text, 0, 0);
+            ctx.restore();
+          }
+        }
 
         ctx.restore();
       }
