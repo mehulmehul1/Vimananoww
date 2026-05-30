@@ -227,11 +227,8 @@ export const FORMULA_TEXTS: Record<Language, {
   myceliumNetwork: string;
   /** Brush Stroke */
   brushStroke: string;
-<<<<<<< HEAD
   /** Arch Carving / Jaali Tiling */
   archCarving: string;
-=======
->>>>>>> origin/main
 }> = {
   en: {
     humCircle: 'VIMANA',
@@ -257,10 +254,7 @@ export const FORMULA_TEXTS: Record<Language, {
     globalCircuit: 'BIOSPHERE CIRCUIT GLOBE SYNAPSE NETWORK NODE CONNECTION PULSE AWARENESS GLOBAL MIND EARTH',
     myceliumNetwork: 'MYCELIUM HYPHA BRANCH RECONNECT NUTRIENT FLOW UNDERGROUND WEB THREAD SIGNAL EXCHANGE SPORE LIFE',
     brushStroke: 'FLOW CURRENT WAVE INK BRUSH MOTION CALLIGRAPHY WATER STREAM SILK CREST RIPPLE GESTURE',
-<<<<<<< HEAD
     archCarving: 'THE CHISEL CARVES PATTERNS ONE LINE AT A TIME EACH GROOVE TELLS A STORY OF FORM AND RHYTHM',
-=======
->>>>>>> origin/main
   },
   hi: {
     humCircle: 'विमान',
@@ -286,10 +280,7 @@ export const FORMULA_TEXTS: Record<Language, {
     globalCircuit: 'जैवमंडल परिपथ ग्लोब संबंध जाल नोड जुड़ाव स्पंदन जागरूकता वैश्विक मन पृथ्वी',
     myceliumNetwork: 'माइसिलियम हाइफ़ा शाखा पुनः जोड़ना पोषण प्रवाह भूमिगत जाल धागा संकेत आदान-प्रदान बीजाणु जीवन',
     brushStroke: 'ब्रश स्याही हावभाव निशान कागज़ रेशा रंग स्वरूपक लिपि हाथ दबाव ब्रिस्टल बनावट गीला',
-<<<<<<< HEAD
     archCarving: 'छेनी एक बार में एक रेखा पैटर्न बनाती है हर खांचा आकार और लय की कहानी कहता है',
-=======
->>>>>>> origin/main
   },
   bn: {
     humCircle: 'বিমান',
@@ -315,10 +306,7 @@ export const FORMULA_TEXTS: Record<Language, {
     globalCircuit: 'জীবমণ্ডল বৃত্ত গ্লোব সংযোগ জাল নোড সংযোগ স্পন্দন সচেতনতা বিশ্ব মন পৃথিবী',
     myceliumNetwork: 'মাইসিলিয়াম হাইফা শাখা পুনঃসংযোগ পুষ্টি প্রবাহ ভূগর্ভস্থ জাল সুতা সংকেত আদানপ্রদান বীজাণু জীবন',
     brushStroke: 'ব্রাশ কালি ভাব চিহ্ন কাগজ আঁশ পিগমেন্ট স্বাক্ষর হাত চাপ ব্রিস্টল বনাম ভেজা',
-<<<<<<< HEAD
     archCarving: 'ছেনি একবারে এক লাইন প্যাটার্ন তৈরি করে প্রতিটি খাঁজ আকার এবং ছন্দের গল্প বলে',
-=======
->>>>>>> origin/main
   },
   ur: {
     humCircle: 'وِمان',
@@ -344,10 +332,7 @@ export const FORMULA_TEXTS: Record<Language, {
     globalCircuit: 'حیاتی کورہ مدار گلوب ربط جال نوڑا جوڑ دھڑکن شعور عالمی ذہن زمین',
     myceliumNetwork: 'مائسیلیم ہائیفا شاخ دوبارہ جوڑنا غذائی سیراب زیر زمین جال دھاگہ اشارہ تبادلہ بیج زندگی',
     brushStroke: 'برش سیاہی انداز نشان کاغذ تار رنگ خطاطی ہاتھ دباؤ برسل بافت',
-<<<<<<< HEAD
     archCarving: 'چھینی ایک وقت میں ایک لائن پیٹرن بناتی ہے ہر داغ شکل اور تال کی کہانی کہتا ہے',
-=======
->>>>>>> origin/main
   },
   ta: {
     humCircle: 'விமானம்',
@@ -373,10 +358,7 @@ export const FORMULA_TEXTS: Record<Language, {
     globalCircuit: 'உயிர்க்கோளம் சுற்று உலகம் இணைப்பு வலை முனை இணைப்பு துடிப்பு உணர்வு உலக மனம் பூமி',
     myceliumNetwork: 'மைசீலியம் நூல் கிளை மீண்டும் இணைப்பு ஊட்டச்சத்து ஓட்டம் நிலத்தடி வலை நூல் சமிக்ஞை பரிமாற்றம் விதை வாழ்க்கை',
     brushStroke: 'தூரிகை மை சைகை குறி காகிதம் நார் நிறம் எழுத்து கை அழுத்தம் முடி அமைப்பு ஈரம்',
-<<<<<<< HEAD
     archCarving: 'உளி ஒரு வரியில் வடிவங்களைச் செதுக்குகிறது ஒவ்வொரு கோடும் வடிவம் மற்றும் தாளத்தின் கதையைச் சொல்கிறது',
-=======
->>>>>>> origin/main
   },
 };
 
