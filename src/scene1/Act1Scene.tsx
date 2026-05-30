@@ -27,6 +27,7 @@ import {
   brainContourText,
   globalCircuit,
   myceliumNetwork,
+  brushStroke,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
@@ -450,12 +451,41 @@ const SCENES: SceneDef[] = [
     origin: "hemispheric convergence",
     duration: 8,
   },
+  {
+    phaseId: "14",
+    navLabel: "🖌 BRUSH",
+    headline: "THE BRUSH",
+    body: "Flow becomes gesture.",
+    formula: "brushStroke / flowing ink",
+    status: "wave memory",
+    frequency: "1666.66 Hz",
+    amplitude: "1.000",
+    coordinates: "14 00 00.00 N / 14 00 00.00 E",
+    origin: "the first motion",
+    duration: 6,
+  },
+  {
+    phaseId: "15",
+    navLabel: "🔪 CHISEL",
+    headline: "THE CHISEL",
+    body: "Three architectures. One language of form.",
+    formula: "archCarving / 3 columns",
+    status: "cultural synthesis",
+    frequency: "1999.99 Hz",
+    amplitude: "1.000",
+    coordinates: "15 00 00.00 N / 15 00 00.00 E",
+    origin: "the first mark",
+    duration: 10,
+  },
 ];
 
 const TOTAL_SCENES = SCENES.length; // Local dev: all scenes active (Netlify stays at 4 via git)
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
+}
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
 function clamp01(value: number): number {
@@ -900,6 +930,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (nextScene >= 5) {
         if (idleTimer) clearTimeout(idleTimer);
         settledRef.current = false;
+        settledTimeRef.current = 0;
         idleTimer = setTimeout(() => {
           settledRef.current = true;
         }, 1000);
@@ -931,7 +962,11 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         isScrollMode && settledRef.current && currentScene >= 5;
 
       if (isScrollMode) {
-        if (weatherSettled) {
+        if (weatherSettled && settledTimeRef.current < sceneDef.duration) {
+          // Initialize from current scroll progress on first settled frame
+          if (settledTimeRef.current === 0) {
+            settledTimeRef.current = progressRef.current * sceneDef.duration;
+          }
           settledTimeRef.current = Math.min(
             sceneDef.duration,
             settledTimeRef.current + dt,
@@ -1169,8 +1204,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 5) {
         // FERN — fractal fern with wind sway
         ctx.save();
-        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFloraP = easeOutCubic(floraP);
+        const easedFloraP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy + 120 * scale);
         const fernP = paramsRef.current.fern;
@@ -1192,8 +1226,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 6) {
         // TREE — L-system tree with wind sway
         ctx.save();
-        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFloraP = easeOutCubic(floraP);
+        const easedFloraP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy + 160 * scale);
         const lsysP = paramsRef.current.lsystem;
@@ -1215,8 +1248,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 7) {
         // CRYSTAL — dendritic crystal with rotation
         ctx.save();
-        const floraP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFloraP = easeOutCubic(floraP);
+        const easedFloraP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         const crystP = paramsRef.current.crystal;
@@ -1241,8 +1273,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 8) {
         // BUTTERFLY — chaotic attractor
         ctx.save();
-        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFaunaP = easeOutCubic(faunaP);
+        const easedFaunaP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
@@ -1258,8 +1289,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 9) {
         // WAVE — symmetric wave flocking
         ctx.save();
-        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFaunaP = easeOutCubic(faunaP);
+        const easedFaunaP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
@@ -1275,8 +1305,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 10) {
         // CREATURE — slimy creature emergent
         ctx.save();
-        const faunaP = progress < 0.5 ? progress / 0.5 : (1 - progress) / 0.5;
-        const easedFaunaP = easeOutCubic(faunaP);
+        const easedFaunaP = easeOutCubic(clamp01(progress));
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
@@ -1297,46 +1326,119 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.scale(mycP.scale, mycP.scale);
 
         const mycText = formulaTexts.myceliumNetwork;
-        const mycProgress = easeOutCubic(clamp01(progress * 1.6));
+        // Growth driven by scroll progress — linear for smooth scroll mapping
+        const mycProgress = clamp01(progress);
 
         if (mycProgress > 0) {
-          const mycResult = myceliumNetwork(mycText, {
-            nodes: mycP.nodes, branches: mycP.branches,
-            depth: mycP.depth, stepLength: mycP.stepLength,
-            angleSpread: mycP.angleSpread, lengthDecay: mycP.lengthDecay,
-            reconnectDist: mycP.reconnectDist, spread: mycP.spread,
-          }, t);
+          // Cache formula result — only regenerate on param change (sway is cheap canvas transform)
+          const mycParamKey = `${mycP.nodes}-${mycP.branches}-${mycP.depth}-${mycP.stepLength}-${mycP.angleSpread}-${mycP.lengthDecay}-${mycP.reconnectDist}-${mycP.spread}`;
+          if (!(window as any)._mycFormulaCache || (window as any)._mycFormulaKey !== mycParamKey) {
+            (window as any)._mycFormulaResult = myceliumNetwork(mycText, {
+              nodes: mycP.nodes, branches: mycP.branches,
+              depth: mycP.depth, stepLength: mycP.stepLength,
+              angleSpread: mycP.angleSpread, lengthDecay: mycP.lengthDecay,
+              reconnectDist: mycP.reconnectDist, spread: mycP.spread,
+            }, 0);
+            (window as any)._mycFormulaKey = mycParamKey;
+          }
+          const mycResult = (window as any)._mycFormulaResult;
 
           if (mycResult.type === "segments") {
             const visibleCount = Math.floor(mycResult.segments.length * mycProgress);
-            const allSegs = mycResult.segments.slice(0, visibleCount);
 
-            // Split by depth: main hyphae (depth <= maxDepth), reconnection threads, node crosses
-            const maxD = mycP.depth ?? 4;
-            const hyphaeSegs = allSegs.filter(s => (s.depth ?? 0) <= maxD);
-            const webSegs = allSegs.filter(s => (s.depth ?? 0) > maxD && (s.depth ?? 0) <= maxD + 1);
-            const nodeSegs = allSegs.filter(s => (s.depth ?? 0) > maxD + 1);
+            // Split ALL segments by depth (layout on full set, not sliced)
+            const maxD = mycP.depth ?? 3;
+            const hyphaeSegs = (mycResult.segments as LineSegment[])
+              .filter((s: LineSegment) => (s.depth ?? 0) <= maxD)
+              .sort((a: LineSegment, b: LineSegment) => (a.depth ?? 0) - (b.depth ?? 0));
+            const webSegs = (mycResult.segments as LineSegment[])
+              .filter((s: LineSegment) => (s.depth ?? 0) > maxD && (s.depth ?? 0) <= maxD + 1)
+              .sort((a: LineSegment, b: LineSegment) => (a.depth ?? 0) - (b.depth ?? 0));
 
-            // Main hyphae — green-gold with depth-based weight
-            const mycPlacements = layoutTextOnSegments(mycText, hyphaeSegs, mycP.fontSize, currentFontFamily, { preserveOrder: true });
-            renderFormulaWithGlow(hyphaeSegs, mycPlacements, "rgba(180, 160, 60, 0.3)", 1.2, "#e8d882", true, mycP.fontSize);
+            // Visible subsets for drawing only
+            const visHyphae = hyphaeSegs.slice(0, Math.floor(hyphaeSegs.length * mycProgress));
+            const visWeb = webSegs.slice(0, Math.floor(webSegs.length * mycProgress));
 
-            // Reconnection web threads — faint, thin
-            if (webSegs.length > 0) {
-              const webPlacements = layoutTextOnSegments(mycText, webSegs, mycP.fontSize * 0.7, currentFontFamily, { preserveOrder: true });
-              renderFormulaWithGlow(webSegs, webPlacements, "rgba(160, 180, 100, 0.12)", 0.4, "#c8d48a", false, mycP.fontSize * 0.7);
+            // Cache layout results — only recalculate when params change
+            const mycCacheKey = `${mycP.nodes}-${mycP.branches}-${mycP.depth}-${mycP.stepLength}-${mycP.fontSize}`;
+            if (!(window as any)._mycLayoutCache || (window as any)._mycLayoutCacheKey !== mycCacheKey) {
+              (window as any)._mycHyphaePlacements = layoutTextOnSegments(mycText, hyphaeSegs, mycP.fontSize, currentFontFamily, { preserveOrder: true });
+              (window as any)._mycWebPlacements = webSegs.length > 0 ? layoutTextOnSegments(mycText, webSegs, mycP.fontSize * 0.7, currentFontFamily, { preserveOrder: true }) : [];
+              (window as any)._mycLayoutCacheKey = mycCacheKey;
+              (window as any)._mycLayoutCache = true;
+            }
+            const mycPlacements = (window as any)._mycHyphaePlacements;
+            const webPlacements = (window as any)._mycWebPlacements;
+
+            // Main hyphae — batched stroke, no per-segment state changes
+            ctx.strokeStyle = "rgba(200, 180, 80, 0.35)";
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            for (const s of visHyphae) {
+              ctx.moveTo(s.x1, s.y1);
+              ctx.lineTo(s.x2, s.y2);
+            }
+            ctx.stroke();
+
+            // Text on hyphae — only show for visible branches
+            const langFont = getFontForLanguage(lang, mycP.fontSize);
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.direction = textDirection(lang);
+            ctx.font = langFont;
+            ctx.fillStyle = "#e8d882";
+            const hyphTextCount = Math.floor(mycPlacements.length * mycProgress);
+            for (let pi = 0; pi < hyphTextCount; pi++) {
+              const p = mycPlacements[pi];
+              if (!p.text.trim()) continue;
+              ctx.save();
+              ctx.translate(p.x, p.y);
+              ctx.rotate(p.rotation);
+              ctx.scale(p.scale, p.scale);
+              ctx.globalAlpha = 0.55 + p.opacity * 0.35;
+              ctx.fillText(p.text, 0, 0);
+              ctx.restore();
             }
 
-            // Nutrient pulses — traveling along hyphae (batched, no per-dot shadow)
+            // Reconnection web — faint, no text (saves measurement)
+            if (visWeb.length > 0) {
+              ctx.strokeStyle = "rgba(160, 180, 100, 0.12)";
+              ctx.lineWidth = 0.4;
+              ctx.beginPath();
+              for (const s of visWeb) {
+                ctx.moveTo(s.x1, s.y1);
+                ctx.lineTo(s.x2, s.y2);
+              }
+              ctx.stroke();
+              // Faint web text — only for visible web
+              const webTextCount = Math.floor(webPlacements.length * mycProgress);
+              if (webTextCount > 0) {
+                const webFont = getFontForLanguage(lang, mycP.fontSize * 0.7);
+                ctx.font = webFont;
+                ctx.fillStyle = "#c8d48a";
+                for (let pi = 0; pi < webTextCount; pi++) {
+                  const p = webPlacements[pi];
+                  if (!p.text.trim()) continue;
+                  ctx.save();
+                  ctx.translate(p.x, p.y);
+                  ctx.rotate(p.rotation);
+                  ctx.scale(p.scale, p.scale);
+                  ctx.globalAlpha = 0.3 + p.opacity * 0.2;
+                  ctx.fillText(p.text, 0, 0);
+                  ctx.restore();
+                }
+              }
+            }
+
+            // Nutrient pulses — batched, skip every other segment
             const pulseCount = 3;
-            ctx.save();
             for (let w = 0; w < pulseCount; w++) {
               const wavePhase = ((t * 0.4 + w / pulseCount) % 1);
               const wavePos = wavePhase * hyphaeSegs.length;
               const waveSpread = 30 * scale;
 
               ctx.beginPath();
-              for (let si = 0; si < hyphaeSegs.length; si += 4) {
+              for (let si = 0; si < hyphaeSegs.length; si += 6) {
                 const dist = Math.abs(si - wavePos);
                 if (dist > waveSpread) continue;
 
@@ -1351,36 +1453,39 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
                 ctx.moveTo(mx + r, my);
                 ctx.arc(mx, my, r, 0, Math.PI * 2);
               }
-              ctx.fillStyle = `rgba(232, 216, 130, 0.5)`;
+              ctx.fillStyle = "rgba(232, 216, 130, 0.5)";
               ctx.fill();
             }
-            ctx.restore();
 
-            // Mycorrhizal nodes — bright junction points
+            // Mycorrhizal nodes — cheap glow (no shadowBlur)
             if (progress > 0.3) {
               const nodeIntensity = (progress - 0.3) / 0.7;
-              for (let ni = 0; ni < 15; ni++) {
+              for (let ni = 0; ni < 8; ni++) {
                 const phase = Math.sin(t * 1.5 + ni * 2.1) * 0.5 + 0.5;
                 if (phase < 0.4) continue;
 
                 const alpha = (phase - 0.4) / 0.6 * nodeIntensity;
-                const nodeSeg = hyphaeSegs[Math.floor(ni * hyphaeSegs.length / 15)];
+                const nodeSeg = hyphaeSegs[Math.floor(ni * hyphaeSegs.length / 8)];
                 if (!nodeSeg) continue;
 
                 const mx = (nodeSeg.x1 + nodeSeg.x2) / 2;
                 const my2 = (nodeSeg.y1 + nodeSeg.y2) / 2;
+                const r = (1.5 + alpha * 3) * scale;
 
+                // Glow halo
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(232, 216, 130, ${alpha * 0.18})`;
+                ctx.arc(mx, my2, r * 3, 0, Math.PI * 2);
+                ctx.fill();
+                // Core dot
                 ctx.beginPath();
                 ctx.fillStyle = `rgba(255, 240, 180, ${alpha * 0.9})`;
-                ctx.shadowColor = "rgba(232, 216, 130, 0.9)";
-                ctx.shadowBlur = 18 * scale * alpha;
-                ctx.arc(mx, my2, (1.5 + alpha * 3) * scale, 0, Math.PI * 2);
+                ctx.arc(mx, my2, r, 0, Math.PI * 2);
                 ctx.fill();
-                ctx.shadowBlur = 0;
               }
             }
 
-            // Underground aura — warm earth glow
+            // Underground aura
             if (progress > 0.5) {
               const auraIntensity = (progress - 0.5) / 0.5;
               ctx.save();
@@ -1527,36 +1632,14 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           ctx.translate(offsetX, offsetY);
           ctx.scale(viewScale, viewScale);
 
-          // Draw brain contour paths
-          ctx.strokeStyle = 'rgba(241, 241, 242, 0.5)';
-          ctx.lineWidth = 0.5;
-          ctx.setLineDash([0.6, 0.6]);
-
-          ctx.lineCap = 'round';
-
-          for (let i = 0; i < BRAIN_SVG_PATHS.length; i++) {
-            const d = BRAIN_SVG_PATHS[i];
-            // Stagger: center paths first
-            const match = d.match(/[mM]([\d.]+)\s+([\d.]+)/);
-            const px = match ? parseFloat(match[1]) : 100;
-            const py = match ? parseFloat(match[2]) : 98;
-            const dist = Math.sqrt((px - 100) ** 2 + (py - 98) ** 2);
-            const spatialDelay = Math.min(1, dist / 130) * 0.5;
-            const localReveal = clamp01((meshProgress - spatialDelay) * 3);
-            if (localReveal < 0.01) continue;
-
-            const path = new Path2D(d);
-            ctx.globalAlpha = localReveal * 0.7;
-            ctx.stroke(path);
-          }
-          ctx.setLineDash([]);
+          // Dotted contour lines disabled — text-only brain
           ctx.globalAlpha = 1;
 
           // Draw word network — pretext: words flow along contour paths (current language only)
           if (wordReveal > 0) {
             // Flatten all contour segments into one array for text layout
             const allBrainSegs: LineSegment[] = brainContourSegments.flat();
-            const brainFs = 3.2 * mobileFontScale;
+            const brainFs = 9.5 * mobileFontScale;
             const brainPlacements = layoutTextOnSegments(
               formulaTexts.brainMesh, allBrainSegs, brainFs, currentFontFamily,
               { preserveOrder: true },
@@ -1608,6 +1691,506 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
           ctx.restore();
         }
+      }
+
+      // === THE BRUSH (scene 14) ===
+      if (renderScene === 14) {
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // Calculate a base scale factor that guarantees responsive, screen-fitting paths
+        // regardless of resolution (targeting a 1000x1000 virtual canvas)
+        const baseScale = Math.max(w, h) / 1020;
+        ctx.scale(baseScale, baseScale);
+
+        // Physical vertical translation based on scroll progress to move the pattern from top to bottom
+        const verticalScrollTranslate = (progress - 0.5) * 450;
+        ctx.translate(0, verticalScrollTranslate);
+
+        const result = brushStroke("", {}, t);
+        if (result.type === "segments") {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          // Reveal segments from top to bottom based on scroll progress
+          const yThreshold = -520 + 1040 * progress;
+
+          // Distinct font sizes for the 8 tracks to create organic varying widths
+          const laneFontSizes = [7.0, 15.0, 5.5, 18.0, 11.0, 4.5, 13.0, 8.5];
+
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          ctx.direction = textDirection(lang);
+
+          for (let j = 0; j < 8; j++) {
+            const laneFs = laneFontSizes[j];
+            const trackSegs = result.segments.filter(
+              s => s.depth === 100 + j && s.y2 <= yThreshold
+            );
+
+            if (trackSegs.length === 0) continue;
+
+            const placements = layoutTextOnSegments(
+              formulaTexts.brushStroke,
+              trackSegs,
+              laneFs,
+              currentFontFamily,
+              { preserveOrder: true }
+            );
+
+            const langFont = getFontForLanguage(lang, laneFs);
+            ctx.font = langFont;
+
+            for (const p of placements) {
+              if (!p.text.trim()) continue;
+              ctx.save();
+              ctx.translate(p.x, p.y);
+              ctx.rotate(p.rotation);
+              ctx.scale(p.scale * 0.95, p.scale * 0.95);
+              ctx.font = langFont;
+
+              ctx.globalAlpha = 0.55 + p.opacity * 0.45;
+              ctx.fillStyle = tone.isVoid
+                ? "rgb(46, 252, 252)"  // glowing turquoise for dark void theme
+                : "rgb(10, 92, 166)";  // deep Japanese indigo blue for light theme
+
+              ctx.fillText(p.text, 0, 0);
+              ctx.restore();
+            }
+          }
+        }
+        ctx.restore();
+      }
+
+      // === THE CHISEL (scene 15) — Arched Column with Cycling Ornamentation ===
+      // Three ornamental styles cycle on loop. Each fills a centered pointed-arch
+      // column with dense connected tiling. Text flows via @chenglou/pretext.
+      // Islamic: proper 12-pointed star tessellation + girih interlacing
+      // Gothic: multi-layer tracery with sub-arches + trefoils + mouchettes
+      // Indian: 8-pointed star + floral + self-similar sub-patterns
+      if (renderScene === 15) {
+        const seq = clamp01(progress);
+        const sc = Math.min(w, h) / 750;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        const revealP = clamp01((seq - 0.1) / 0.8);
+
+        // ── Arched column geometry (wider, shorter — fits 4 pattern columns) ──
+        const colW = Math.min(w, h) * 0.50;
+        const colH = h * 0.60;
+        const archHeight = colW * 0.45;
+        const colTop = -colH / 2;
+        const colX = -colW / 2;
+        const colRight = colX + colW;
+        const colBottom = colTop + colH;
+        const archBase = colTop + archHeight;
+
+        // ── Style cycling (7s per style) ──
+        const CYCLE = 4;
+        const styleIdx = Math.floor((t / CYCLE) % 3);
+
+        // ── Clip to pointed-arch column shape (no fill) ──
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(colX, colBottom);
+        ctx.lineTo(colX, archBase);
+        ctx.quadraticCurveTo(colX - colW * 0.12, archBase - colW * 0.3, 0, archBase - colW * 0.85);
+        ctx.quadraticCurveTo(colRight + colW * 0.12, archBase - colW * 0.3, colRight, archBase);
+        ctx.lineTo(colRight, colBottom);
+        ctx.closePath();
+        ctx.clip();
+
+        // ── Column arch outline (carries text first + subtle border) ──
+        const archSegs = 8;
+        const archSegmentsPre: LineSegment[] = [];
+        const apexY = archBase - colW * 0.85;
+        // Left arch: bottom to apex (continuous)
+        for (let i = 0; i < archSegs; i++) {
+          const t1 = i / archSegs, t2 = (i + 1) / archSegs;
+          const llx = (1-t1)*(1-t1)*colX + 2*(1-t1)*t1*(colX-colW*0.12) + t1*t1*0;
+          const lly = (1-t1)*(1-t1)*archBase + 2*(1-t1)*t1*(archBase-colW*0.3) + t1*t1*apexY;
+          const llx2 = (1-t2)*(1-t2)*colX + 2*(1-t2)*t2*(colX-colW*0.12) + t2*t2*0;
+          const lly2 = (1-t2)*(1-t2)*archBase + 2*(1-t2)*t2*(archBase-colW*0.3) + t2*t2*apexY;
+          archSegmentsPre.push({ x1: llx, y1: lly, x2: llx2, y2: lly2, angle: 0, length: 0, depth: 0.4 });
+        }
+        // Right arch: apex to bottom (continuous after left arch)
+        for (let i = 0; i < archSegs; i++) {
+          const t1 = i / archSegs, t2 = (i + 1) / archSegs;
+          const rrx = (1-t1)*(1-t1)*colRight + 2*(1-t1)*t1*(colRight+colW*0.12) + t1*t1*0;
+          const rry = (1-t1)*(1-t1)*archBase + 2*(1-t1)*t1*(archBase-colW*0.3) + t1*t1*apexY;
+          const rrx2 = (1-t2)*(1-t2)*colRight + 2*(1-t2)*t2*(colRight+colW*0.12) + t2*t2*0;
+          const rry2 = (1-t2)*(1-t2)*archBase + 2*(1-t2)*t2*(archBase-colW*0.3) + t2*t2*apexY;
+          archSegmentsPre.push({ x1: rrx, y1: rry, x2: rrx2, y2: rry2, angle: 0, length: 0, depth: 0.4 });
+        }
+        // Left vertical, bottom band, right vertical
+        archSegmentsPre.push({ x1: colX, y1: archBase, x2: colX, y2: colBottom, angle: 0, length: 0, depth: 0.4 });
+        archSegmentsPre.push({ x1: colX, y1: colBottom, x2: colRight, y2: colBottom, angle: 0, length: 0, depth: 0.4 });
+        archSegmentsPre.push({ x1: colRight, y1: colBottom, x2: colRight, y2: archBase, angle: 0, length: 0, depth: 0.4 });
+
+        // ── Generate ornament segments — arch-adaptive tiling ──
+        const segs: LineSegment[] = [...archSegmentsPre];
+        const baseCell = colW / 4.2;
+        const numRows = Math.ceil(colH / baseCell) + 8;
+
+        // Arch width at a given y (from colBottom up to arch apex)
+        const archWAt = (y: number): number => {
+          if (y >= archBase) return colW;
+          const apexY = archBase - colW * 0.85;
+          if (y <= apexY) return 0;
+          let lo = 0, hi = 1;
+          for (let i = 0; i < 16; i++) {
+            const m = (lo + hi) / 2;
+            const ym = (1-m)*(1-m)*archBase + 2*(1-m)*m*(archBase - colW*0.3) + m*m*apexY;
+            if (ym > y) lo = m; else hi = m;
+          }
+          const t = (lo + hi) / 2;
+          const xl = (1-t)*(1-t)*colX + 2*(1-t)*t*(colX - colW*0.12) + t*t*0;
+          return Math.abs(xl) * 2;
+        };
+
+        for (let r = 0; r < numRows; r++) {
+          const yPos = colBottom - r * baseCell - baseCell / 2;
+          const availW = archWAt(yPos);
+          if (availW < baseCell * 0.25) continue;
+
+          const cols = Math.max(1, Math.round(availW / (baseCell * 1.1)));
+          const step = availW / cols;
+          const R = step * 0.48;
+          const iR = R * 0.38;
+          const leftX = -availW / 2;
+
+          for (let c = 0; c < cols; c++) {
+            const ox = leftX + c * step + step / 2;
+            const oy = yPos;
+
+            if (styleIdx === 0) {
+              // ── ★ INDIAN JALI: 8-pointed star + interlacing + diamond ──
+              for (let p = 0; p < 8; p++) {
+                const a = p * Math.PI / 4, na = (p + 1) * Math.PI / 4;
+                const r1 = p % 2 === 0 ? R : iR, r2 = (p + 1) % 2 === 0 ? R : iR;
+                segs.push({ x1: ox + Math.cos(a) * r1, y1: oy + Math.sin(a) * r1, x2: ox + Math.cos(na) * r2, y2: oy + Math.sin(na) * r2, angle: 0, length: 0, depth: 0 });
+              }
+              // Inner star (rotated 22.5°)
+              const iR2 = R * 0.2;
+              for (let p = 0; p < 8; p++) {
+                const a = p * Math.PI / 4 - Math.PI / 8, na = (p + 1) * Math.PI / 4 - Math.PI / 8;
+                const r1 = p % 2 === 0 ? iR2 : iR2 * 0.5, r2 = (p + 1) % 2 === 0 ? iR2 : iR2 * 0.5;
+                segs.push({ x1: ox + Math.cos(a) * r1, y1: oy + Math.sin(a) * r1, x2: ox + Math.cos(na) * r2, y2: oy + Math.sin(na) * r2, angle: 0, length: 0, depth: 1 });
+              }
+              // Lotus petals
+              const petR = iR2 * 0.9;
+              for (let p = 0; p < 6; p++) {
+                const a = p * Math.PI / 3;
+                segs.push({ x1: ox, y1: oy, x2: ox + Math.cos(a) * petR, y2: oy + Math.sin(a) * petR, angle: 0, length: 0, depth: 1 });
+                segs.push({ x1: ox + Math.cos(a) * petR, y1: oy + Math.sin(a) * petR, x2: ox + Math.cos(a) * petR * 0.5 + Math.cos(a + 0.5) * petR * 0.3, y2: oy + Math.sin(a) * petR * 0.5 + Math.sin(a + 0.5) * petR * 0.3, angle: 0, length: 0, depth: 1 });
+              }
+              // Diamond center
+              const dR = R * 0.12;
+              segs.push({ x1: ox, y1: oy - dR, x2: ox + dR * 0.6, y2: oy, angle: 0, length: 0, depth: 0 });
+              segs.push({ x1: ox + dR * 0.6, y1: oy, x2: ox, y2: oy + dR, angle: 0, length: 0, depth: 0 });
+              segs.push({ x1: ox, y1: oy + dR, x2: ox - dR * 0.6, y2: oy, angle: 0, length: 0, depth: 0 });
+              segs.push({ x1: ox - dR * 0.6, y1: oy, x2: ox, y2: oy - dR, angle: 0, length: 0, depth: 0 });
+              // Horizontal interlacing bands (connect to next cell)
+              if (c < cols - 1) {
+                for (let d = -1; d <= 1; d += 2) {
+                  segs.push({ x1: ox + R, y1: oy + d * 3 * sc, x2: ox + step - R, y2: oy + d * 3 * sc, angle: 0, length: 0, depth: 0.5 });
+                }
+              }
+              // Vertical interlacing bands (connect to row below)
+              if (r < numRows - 1) {
+                for (let d = -1; d <= 1; d += 2) {
+                  segs.push({ x1: ox + d * 3 * sc, y1: oy + R, x2: ox + d * 3 * sc, y2: oy + baseCell * 0.5 - R, angle: 0, length: 0, depth: 0.5 });
+                }
+              }
+              // Diagonal crossing
+              segs.push({ x1: ox - R * 0.45, y1: oy - R * 0.45, x2: ox + R * 0.45, y2: oy + R * 0.45, angle: 0, length: 0, depth: 1 });
+              segs.push({ x1: ox - R * 0.45, y1: oy + R * 0.45, x2: ox + R * 0.45, y2: oy - R * 0.45, angle: 0, length: 0, depth: 1 });
+              // Sub-stars in gaps
+              const gapD = step * 0.26;
+              for (let q = 0; q < 4; q++) {
+                const qAng = q * Math.PI / 2 + Math.PI / 4;
+                const qx = ox + Math.cos(qAng) * gapD;
+                const qy = oy + Math.sin(qAng) * gapD;
+                const sr = R * 0.18;
+                for (let p = 0; p < 4; p++) {
+                  const a = p * Math.PI / 2, na = (p + 1) * Math.PI / 2;
+                  const r1 = p % 2 === 0 ? sr : sr * 0.45, r2 = (p + 1) % 2 === 0 ? sr : sr * 0.45;
+                  segs.push({ x1: qx + Math.cos(a) * r1, y1: qy + Math.sin(a) * r1, x2: qx + Math.cos(na) * r2, y2: qy + Math.sin(na) * r2, angle: 0, length: 0, depth: 1.2 });
+                }
+                segs.push({ x1: qx, y1: qy - sr * 0.2, x2: qx + sr * 0.1, y2: qy, angle: 0, length: 0, depth: 1.2 });
+                segs.push({ x1: qx + sr * 0.1, y1: qy, x2: qx, y2: qy + sr * 0.2, angle: 0, length: 0, depth: 1.2 });
+                segs.push({ x1: qx, y1: qy + sr * 0.2, x2: qx - sr * 0.1, y2: qy, angle: 0, length: 0, depth: 1.2 });
+                segs.push({ x1: qx - sr * 0.1, y1: qy, x2: qx, y2: qy - sr * 0.2, angle: 0, length: 0, depth: 1.2 });
+              }
+
+            } else if (styleIdx === 1) {
+              // ── ★ ISLAMIC: 12-pointed stars + 8-pointed stars + girih bands ──
+              for (let h = 0; h < 2; h++) {
+                const off = h * Math.PI / 6;
+                const starR = h === 0 ? R * 0.85 : R * 0.45;
+                for (let p = 0; p < 6; p++) {
+                  const a = p * Math.PI / 3 + off, na = (p + 1) * Math.PI / 3 + off;
+                  segs.push({ x1: ox + Math.cos(a) * starR, y1: oy + Math.sin(a) * starR, x2: ox + Math.cos(na) * starR, y2: oy + Math.sin(na) * starR, angle: 0, length: 0, depth: 0 });
+                }
+              }
+              for (let s = 0; s < 12; s++) {
+                const a = s * Math.PI / 6;
+                segs.push({ x1: ox, y1: oy, x2: ox + Math.cos(a) * R * 0.35, y2: oy + Math.sin(a) * R * 0.35, angle: 0, length: 0, depth: 0.2 });
+              }
+              const iR8 = R * 0.32;
+              for (let p = 0; p < 8; p++) {
+                const a = p * Math.PI / 4, na = (p + 1) * Math.PI / 4;
+                const r1 = p % 2 === 0 ? iR8 : iR8 * 0.5, r2 = (p + 1) % 2 === 0 ? iR8 : iR8 * 0.5;
+                segs.push({ x1: ox + Math.cos(a) * r1, y1: oy + Math.sin(a) * r1, x2: ox + Math.cos(na) * r2, y2: oy + Math.sin(na) * r2, angle: 0, length: 0, depth: 0 });
+              }
+              for (let p = 0; p < 24; p++) {
+                const a1 = (p / 24) * Math.PI * 2, a2 = ((p + 1) / 24) * Math.PI * 2;
+                segs.push({ x1: ox + Math.cos(a1) * R * 0.92, y1: oy + Math.sin(a1) * R * 0.92, x2: ox + Math.cos(a2) * R * 0.92, y2: oy + Math.sin(a2) * R * 0.92, angle: 0, length: 0, depth: 0.3 });
+              }
+              for (let p = 0; p < 16; p++) {
+                const a1 = (p / 16) * Math.PI * 2, a2 = ((p + 1) / 16) * Math.PI * 2;
+                segs.push({ x1: ox + Math.cos(a1) * R * 0.55, y1: oy + Math.sin(a1) * R * 0.55, x2: ox + Math.cos(a2) * R * 0.55, y2: oy + Math.sin(a2) * R * 0.55, angle: 0, length: 0, depth: 0.4 });
+              }
+              for (let p = 0; p < 8; p++) {
+                const a1 = (p / 8) * Math.PI * 2, a2 = ((p + 1) / 8) * Math.PI * 2;
+                segs.push({ x1: ox + Math.cos(a1) * R * 0.08, y1: oy + Math.sin(a1) * R * 0.08, x2: ox + Math.cos(a2) * R * 0.08, y2: oy + Math.sin(a2) * R * 0.08, angle: 0, length: 0, depth: 0 });
+              }
+              // Horizontal girih bands
+              if (c < cols - 1) {
+                for (let d = -3; d <= 3; d += 3) {
+                  segs.push({ x1: ox + R * 0.4, y1: oy + d * 2 * sc, x2: ox + step - R * 0.4, y2: oy + d * 2 * sc, angle: 0, length: 0, depth: 0.6 });
+                }
+              }
+              // Vertical girih bands
+              if (r < numRows - 1) {
+                for (let d = -3; d <= 3; d += 3) {
+                  segs.push({ x1: ox + d * 2 * sc, y1: oy + R * 0.4, x2: ox + d * 2 * sc, y2: oy + baseCell * 0.5 - R * 0.4, angle: 0, length: 0, depth: 0.6 });
+                }
+              }
+              // Diagonal connecting bands
+              if (c < cols - 1 && r < numRows - 1) {
+                segs.push({ x1: ox + R * 0.55, y1: oy + R * 0.55, x2: ox + step - R * 0.55, y2: oy + baseCell * 0.5 - R * 0.55, angle: 0, length: 0, depth: 0.6 });
+                segs.push({ x1: ox + step - R * 0.55, y1: oy + R * 0.55, x2: ox + R * 0.55, y2: oy + baseCell * 0.5 - R * 0.55, angle: 0, length: 0, depth: 0.6 });
+              }
+              // 6-pointed stars in gaps
+              for (let q = 0; q < 4; q++) {
+                const qAng = q * Math.PI / 2 + Math.PI / 4;
+                const qx = ox + Math.cos(qAng) * step * 0.28;
+                const qy = oy + Math.sin(qAng) * step * 0.28;
+                const sr = R * 0.18;
+                for (let h = 0; h < 2; h++) {
+                  const off = h * Math.PI / 6;
+                  for (let p = 0; p < 6; p++) {
+                    const a = p * Math.PI / 3 + off, na = (p + 1) * Math.PI / 3 + off;
+                    const r1 = h === 0 ? sr : sr * 0.5, r2 = h === 0 ? sr : sr * 0.5;
+                    segs.push({ x1: qx + Math.cos(a) * r1, y1: qy + Math.sin(a) * r1, x2: qx + Math.cos(na) * r2, y2: qy + Math.sin(na) * r2, angle: 0, length: 0, depth: 1 });
+                  }
+                }
+              }
+
+            } else {
+              // ── ★ GOTHIC TRACERY: Lancet arch + trefoil + sub-arches ──
+              const aw = R * 0.78, ah = R * 0.95;
+              const circR = (aw * aw + ah * ah) / (2 * ah);
+              const cy = oy - ah + circR;
+              for (let p = 0; p < 5; p++) {
+                const a1 = Math.PI * 0.5 + (p / 5) * (Math.PI * 0.32);
+                const a2 = Math.PI * 0.5 + ((p + 1) / 5) * (Math.PI * 0.32);
+                segs.push({ x1: ox - aw + Math.cos(a1) * circR, y1: cy + Math.sin(a1) * circR, x2: ox - aw + Math.cos(a2) * circR, y2: cy + Math.sin(a2) * circR, angle: 0, length: 0, depth: 0 });
+              }
+              for (let p = 0; p < 5; p++) {
+                const a1 = Math.PI * 0.18 + (p / 5) * (Math.PI * 0.32);
+                const a2 = Math.PI * 0.18 + ((p + 1) / 5) * (Math.PI * 0.32);
+                segs.push({ x1: ox + aw + Math.cos(a1) * circR, y1: cy + Math.sin(a1) * circR, x2: ox + aw + Math.cos(a2) * circR, y2: cy + Math.sin(a2) * circR, angle: 0, length: 0, depth: 0 });
+              }
+              segs.push({ x1: ox - aw, y1: oy + ah, x2: ox - aw, y2: oy - ah * 0.15, angle: 0, length: 0, depth: 0 });
+              segs.push({ x1: ox + aw, y1: oy + ah, x2: ox + aw, y2: oy - ah * 0.15, angle: 0, length: 0, depth: 0 });
+              // Sub-arches
+              const subAw = aw * 0.35, subAh = ah * 0.55;
+              const subCircR = (subAw * subAw + subAh * subAh) / (2 * subAh);
+              for (let side = -1; side <= 1; side += 2) {
+                const subOx = ox + side * subAw * 1.05;
+                const subCy = oy - ah * 0.25 + subCircR;
+                for (let p = 0; p < 4; p++) {
+                  const a1 = Math.PI * 0.5 + (p / 4) * (Math.PI * 0.32);
+                  const a2 = Math.PI * 0.5 + ((p + 1) / 4) * (Math.PI * 0.32);
+                  segs.push({ x1: subOx - subAw + Math.cos(a1) * subCircR, y1: subCy + Math.sin(a1) * subCircR, x2: subOx - subAw + Math.cos(a2) * subCircR, y2: subCy + Math.sin(a2) * subCircR, angle: 0, length: 0, depth: 0.3 });
+                }
+                for (let p = 0; p < 4; p++) {
+                  const a1 = Math.PI * 0.18 + (p / 4) * (Math.PI * 0.32);
+                  const a2 = Math.PI * 0.18 + ((p + 1) / 4) * (Math.PI * 0.32);
+                  segs.push({ x1: subOx + subAw + Math.cos(a1) * subCircR, y1: subCy + Math.sin(a1) * subCircR, x2: subOx + subAw + Math.cos(a2) * subCircR, y2: subCy + Math.sin(a2) * subCircR, angle: 0, length: 0, depth: 0.3 });
+                }
+                segs.push({ x1: subOx - subAw, y1: oy + ah - ah * 0.25, x2: subOx - subAw, y2: oy - ah * 0.25 - subAh * 0.2, angle: 0, length: 0, depth: 0.3 });
+                segs.push({ x1: subOx + subAw, y1: oy + ah - ah * 0.25, x2: subOx + subAw, y2: oy - ah * 0.25 - subAh * 0.2, angle: 0, length: 0, depth: 0.3 });
+                const sFoilR = subAw * 0.35;
+                for (let f = 0; f < 3; f++) {
+                  const fa = f * 2 * Math.PI / 3 - Math.PI / 2;
+                  const fx = subOx + Math.cos(fa) * sFoilR * 0.8;
+                  const fy = oy - ah * 0.25 + Math.sin(fa) * sFoilR * 0.8;
+                  for (let p = 0; p < 5; p++) {
+                    const a1 = (p / 5) * Math.PI * 2, a2 = ((p + 1) / 5) * Math.PI * 2;
+                    segs.push({ x1: fx + Math.cos(a1) * sFoilR, y1: fy + Math.sin(a1) * sFoilR, x2: fx + Math.cos(a2) * sFoilR, y2: fy + Math.sin(a2) * sFoilR, angle: 0, length: 0, depth: 1.2 });
+                  }
+                }
+              }
+              // Central trefoil
+              const foilR = R * 0.22;
+              for (let f = 0; f < 3; f++) {
+                const fa = f * 2 * Math.PI / 3 - Math.PI / 2;
+                const fx = ox + Math.cos(fa) * foilR * 0.95;
+                const fy = oy + Math.sin(fa) * foilR * 0.95 - ah * 0.1;
+                for (let p = 0; p < 6; p++) {
+                  const a1 = (p / 6) * Math.PI * 2, a2 = ((p + 1) / 6) * Math.PI * 2;
+                  segs.push({ x1: fx + Math.cos(a1) * foilR, y1: fy + Math.sin(a1) * foilR, x2: fx + Math.cos(a2) * foilR, y2: fy + Math.sin(a2) * foilR, angle: 0, length: 0, depth: 0.8 });
+                }
+              }
+              for (let f = 0; f < 3; f++) {
+                const fa = f * 2 * Math.PI / 3 + Math.PI / 6;
+                const cx2 = ox + Math.cos(fa) * foilR * 1.35;
+                const cy2 = oy + Math.sin(fa) * foilR * 1.35 - ah * 0.1;
+                segs.push({ x1: cx2, y1: cy2, x2: cx2 + Math.cos(fa) * foilR * 0.5, y2: cy2 + Math.sin(fa) * foilR * 0.5, angle: 0, length: 0, depth: 0.7 });
+              }
+              segs.push({ x1: ox, y1: oy + ah, x2: ox, y2: oy - ah * 0.85, angle: 0, length: 0, depth: 0.5 });
+              segs.push({ x1: ox - aw * 0.8, y1: oy + ah * 0.5, x2: ox + aw * 0.8, y2: oy + ah * 0.5, angle: 0, length: 0, depth: 0.5 });
+              for (let side = -1; side <= 1; side += 2) {
+                const muX = ox + side * subAw * 2.0;
+                const muY = oy - ah * 0.1;
+                const muR2 = aw * 0.12;
+                for (let p = 0; p < 8; p++) {
+                  const a1 = (p / 8) * Math.PI, a2 = ((p + 1) / 8) * Math.PI;
+                  segs.push({ x1: muX + Math.cos(a1) * muR2, y1: muY + Math.sin(a1) * muR2 * 0.6, x2: muX + Math.cos(a2) * muR2, y2: muY + Math.sin(a2) * muR2 * 0.6, angle: 0, length: 0, depth: 0.7 });
+                }
+                segs.push({ x1: muX - muR2 * 0.3, y1: muY + muR2 * 0.5, x2: muX + muR2 * 0.3, y2: muY + muR2 * 0.5, angle: 0, length: 0, depth: 0.7 });
+              }
+              const qfR = R * 0.06;
+              for (let q = 0; q < 4; q++) {
+                const qa = q * Math.PI / 2;
+                const qx = Math.cos(qa) * qfR * 1.5;
+                const qy = oy - ah * 0.72 + Math.sin(qa) * qfR * 1.5;
+                for (let p = 0; p < 6; p++) {
+                  const a1 = (p / 6) * Math.PI * 2, a2 = ((p + 1) / 6) * Math.PI * 2;
+                  segs.push({ x1: ox + qx + Math.cos(a1) * qfR, y1: qy + Math.sin(a1) * qfR, x2: ox + qx + Math.cos(a2) * qfR, y2: qy + Math.sin(a2) * qfR, angle: 0, length: 0, depth: 0.6 });
+                }
+              }
+            }
+          }
+        }
+
+        // ── Compute length & angle for text layout on pattern lines ──
+        for (const s of segs) {
+          const dx = s.x2 - s.x1, dy = s.y2 - s.y1;
+          s.length = Math.hypot(dx, dy);
+          s.angle = Math.atan2(dy, dx);
+        }
+
+        // Sort by depth
+        segs.sort((a, b) => (a.depth || 0) - (b.depth || 0));
+        const visCount = Math.floor(segs.length * revealP);
+        const visSegs = segs.slice(0, visCount);
+
+        // ── Style-based palettes (stroke only) ──
+        const LINE_C = [
+          "rgba(200, 155, 100, 0.70)",  // Indian sandstone
+          "rgba(50, 170, 190, 0.70)",   // Islamic teal
+          "rgba(160, 130, 180, 0.70)",  // Gothic lavender
+        ];
+        const SUB_C = [
+          "rgba(160, 120, 75, 0.40)",
+          "rgba(30, 130, 155, 0.40)",
+          "rgba(110, 80, 130, 0.40)",
+        ];
+        const DEEP_C = [
+          "rgba(120, 85, 50, 0.25)",
+          "rgba(15, 90, 110, 0.25)",
+          "rgba(80, 55, 100, 0.25)",
+        ];
+
+        if (visSegs.length > 0) {
+          // Deep/subtle lines (depth >= 1)
+          const deep = visSegs.filter(s => (s.depth || 0) >= 1);
+          if (deep.length > 0) {
+            ctx.strokeStyle = DEEP_C[styleIdx];
+            ctx.lineWidth = 0.5 * sc;
+            ctx.beginPath();
+            for (const s of deep) ctx.moveTo(s.x1, s.y1), ctx.lineTo(s.x2, s.y2);
+            ctx.stroke();
+          }
+          // Secondary lines (depth 0.3–0.9)
+          const sub = visSegs.filter(s => (s.depth || 0) >= 0.3 && (s.depth || 0) < 1);
+          if (sub.length > 0) {
+            ctx.strokeStyle = SUB_C[styleIdx];
+            ctx.lineWidth = 0.8 * sc;
+            ctx.beginPath();
+            for (const s of sub) ctx.moveTo(s.x1, s.y1), ctx.lineTo(s.x2, s.y2);
+            ctx.stroke();
+          }
+          // Main lines (depth < 0.3)
+          const main = visSegs.filter(s => (s.depth || 0) < 0.3);
+          if (main.length > 0) {
+            ctx.strokeStyle = LINE_C[styleIdx];
+            ctx.lineWidth = 1.8 * sc;
+            ctx.beginPath();
+            for (const s of main) ctx.moveTo(s.x1, s.y1), ctx.lineTo(s.x2, s.y2);
+            ctx.stroke();
+          }
+
+          // ── TEXT FLOW on pattern lines (pretext) — small, bright ──
+          const textFs = Math.max(4, 6 * sc);
+          const placements = layoutTextOnSegments(
+            formulaTexts.archCarving, segs,
+            textFs, currentFontFamily,
+            { preserveOrder: true },
+          );
+          const langFont = getFontForLanguage(lang, textFs);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          ctx.direction = textDirection(lang);
+          ctx.font = langFont;
+          for (const p of placements) {
+            if (!p.text.trim()) continue;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.scale(p.scale, p.scale);
+            ctx.globalAlpha = 0.55 + p.opacity * 0.35;
+            ctx.fillStyle = "#fff8e8";
+            ctx.fillText(p.text, 0, 0);
+            ctx.restore();
+          }
+        }
+
+        ctx.restore(); // end clip
+
+        // ── Column outline ──
+        ctx.strokeStyle = "rgba(200, 170, 130, 0.60)";
+        ctx.lineWidth = 2.5 * sc;
+        ctx.shadowColor = "rgba(200, 170, 130, 0.12)";
+        ctx.shadowBlur = 5 * sc;
+        ctx.beginPath();
+        ctx.moveTo(colX, colBottom);
+        ctx.lineTo(colX, archBase);
+        ctx.quadraticCurveTo(colX - colW * 0.12, archBase - colW * 0.3, 0, archBase - colW * 0.85);
+        ctx.quadraticCurveTo(colRight + colW * 0.12, archBase - colW * 0.3, colRight, archBase);
+        ctx.lineTo(colRight, colBottom);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // ── Style label ──
+        const LABELS = ["★ INDIAN JALI", "★ ISLAMIC GEOMETRIC", "★ GOTHIC TRACERY"];
+        ctx.fillStyle = "rgba(200, 170, 130, 0.55)";
+        ctx.font = `${Math.max(8, 9 * sc * sc)}px ${FONT_PRIMARY}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "top";
+        ctx.globalAlpha = 0.4 + 0.4 * Math.abs(Math.sin(t * 1.3));
+        ctx.fillText(LABELS[styleIdx], 0, colBottom + 14 * sc);
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
       }
 
       // Restore our global transition scale wrapper

@@ -155,8 +155,17 @@ export const SCENE_NETWORK: Record<Language, SceneTexts> = {
   ta: { headline: 'மைசீலியம்.', body: 'மேற்பரப்பின் கீழ், பில்லியன் நூல்கள் பூமியின் அசல் இணையத்தை நெய்கின்றன. ஊட்டச்சத்து பரிமாற்றம் மற்றும் வேதியியல் சமிக்ஞைகளின் அமைதியான வலை.', navLabel: 'வலை' },
 };
 
+/** Scene 14: THE BRUSH */
+export const SCENE_BRUSH: Record<Language, SceneTexts> = {
+  en: { headline: 'THE BRUSH', body: 'Consciousness makes its first mark. Ink meets paper. The gesture becomes form.', navLabel: '🖌 BRUSH' },
+  hi: { headline: 'ब्रश', body: 'चेतना अपना पहला निशान बनाती है। स्याही कागज़ से मिलती है। हावभाव रूप बन जाता है।', navLabel: '🖌 ब्रश' },
+  bn: { headline: 'ব্রাশ', body: 'চেতনা তার প্রথম চিহ্ন তৈরি করে। কালি কাগজের সাথে মিলিত হয়। ভাব আকৃতি হয়ে ওঠে।', navLabel: '🖌 ব্রাশ' },
+  ur: { headline: 'برش', body: 'شعور اپنا پہلا نشان بناتا ہے۔ سیاہی کاغذ سے ملتی ہے۔ انداز شکل بن جاتا ہے۔', navLabel: '🖌 برش' },
+  ta: { headline: 'தூரிகை', body: 'உணர்வு தனது முதல் குறியை உருவாக்குகிறது. மை காகிதத்தை சந்திக்கிறது. சைகை வடிவமாகிறது.', navLabel: '🖌 தூரிகை' },
+};
+
 /** All multilingual scene objects in order */
-const ALL_SCENES = [SCENE_VOID, SCENE_HUM, SCENE_WORD, SCENE_FIELD, SCENE_BLUEPRINT, SCENE_FERN, SCENE_TREE, SCENE_CRYSTAL, SCENE_BUTTERFLY, SCENE_WAVE, SCENE_CREATURE, SCENE_NETWORK, SCENE_EMERGENCE, SCENE_CONVERGENCE];
+const ALL_SCENES = [SCENE_VOID, SCENE_HUM, SCENE_WORD, SCENE_FIELD, SCENE_BLUEPRINT, SCENE_FERN, SCENE_TREE, SCENE_CRYSTAL, SCENE_BUTTERFLY, SCENE_WAVE, SCENE_CREATURE, SCENE_NETWORK, SCENE_EMERGENCE, SCENE_CONVERGENCE, SCENE_BRUSH];
 
 /** All scene texts indexed by scene number (12 scenes) */
 export const SCENE_TEXTS: Record<Language, SceneTexts[]> = {
@@ -216,6 +225,10 @@ export const FORMULA_TEXTS: Record<Language, {
   globalCircuit: string;
   /** Mycelium Network */
   myceliumNetwork: string;
+  /** Brush Stroke */
+  brushStroke: string;
+  /** Arch Carving / Jaali Tiling */
+  archCarving: string;
 }> = {
   en: {
     humCircle: 'VIMANA',
@@ -240,6 +253,8 @@ export const FORMULA_TEXTS: Record<Language, {
     brainMesh: 'NEURON SYNAPSE CORTEX SULCUS GYRUS FOLD MIND BRAIN CONSCIOUSNESS AWARENESS THOUGHT PULSE',
     globalCircuit: 'BIOSPHERE CIRCUIT GLOBE SYNAPSE NETWORK NODE CONNECTION PULSE AWARENESS GLOBAL MIND EARTH',
     myceliumNetwork: 'MYCELIUM HYPHA BRANCH RECONNECT NUTRIENT FLOW UNDERGROUND WEB THREAD SIGNAL EXCHANGE SPORE LIFE',
+    brushStroke: 'FLOW CURRENT WAVE INK BRUSH MOTION CALLIGRAPHY WATER STREAM SILK CREST RIPPLE GESTURE',
+    archCarving: 'THE CHISEL CARVES PATTERNS ONE LINE AT A TIME EACH GROOVE TELLS A STORY OF FORM AND RHYTHM',
   },
   hi: {
     humCircle: 'विमान',
@@ -264,6 +279,8 @@ export const FORMULA_TEXTS: Record<Language, {
     brainMesh: 'तंत्रिका संबंध प्रांतस्था सल्कस गाइरस मोड़ मन मस्तिष्क चेतना जागरूकता विचार स्पंदन',
     globalCircuit: 'जैवमंडल परिपथ ग्लोब संबंध जाल नोड जुड़ाव स्पंदन जागरूकता वैश्विक मन पृथ्वी',
     myceliumNetwork: 'माइसिलियम हाइफ़ा शाखा पुनः जोड़ना पोषण प्रवाह भूमिगत जाल धागा संकेत आदान-प्रदान बीजाणु जीवन',
+    brushStroke: 'ब्रश स्याही हावभाव निशान कागज़ रेशा रंग स्वरूपक लिपि हाथ दबाव ब्रिस्टल बनावट गीला',
+    archCarving: 'छेनी एक बार में एक रेखा पैटर्न बनाती है हर खांचा आकार और लय की कहानी कहता है',
   },
   bn: {
     humCircle: 'বিমান',
@@ -288,6 +305,8 @@ export const FORMULA_TEXTS: Record<Language, {
     brainMesh: 'স্নায়ু সংযোগ কর্টেক্স সালকাস গাইরাস ভাঁজ মন মস্তিষ্ক সচেতনতা চিন্তা স্পন্দন',
     globalCircuit: 'জীবমণ্ডল বৃত্ত গ্লোব সংযোগ জাল নোড সংযোগ স্পন্দন সচেতনতা বিশ্ব মন পৃথিবী',
     myceliumNetwork: 'মাইসিলিয়াম হাইফা শাখা পুনঃসংযোগ পুষ্টি প্রবাহ ভূগর্ভস্থ জাল সুতা সংকেত আদানপ্রদান বীজাণু জীবন',
+    brushStroke: 'ব্রাশ কালি ভাব চিহ্ন কাগজ আঁশ পিগমেন্ট স্বাক্ষর হাত চাপ ব্রিস্টল বনাম ভেজা',
+    archCarving: 'ছেনি একবারে এক লাইন প্যাটার্ন তৈরি করে প্রতিটি খাঁজ আকার এবং ছন্দের গল্প বলে',
   },
   ur: {
     humCircle: 'وِمان',
@@ -312,6 +331,8 @@ export const FORMULA_TEXTS: Record<Language, {
     brainMesh: 'عصب ربط دماغی پرت سلکس گائرس سلوٹ ذہن دماغ شعور سوچ دھڑکن',
     globalCircuit: 'حیاتی کورہ مدار گلوب ربط جال نوڑا جوڑ دھڑکن شعور عالمی ذہن زمین',
     myceliumNetwork: 'مائسیلیم ہائیفا شاخ دوبارہ جوڑنا غذائی سیراب زیر زمین جال دھاگہ اشارہ تبادلہ بیج زندگی',
+    brushStroke: 'برش سیاہی انداز نشان کاغذ تار رنگ خطاطی ہاتھ دباؤ برسل بافت',
+    archCarving: 'چھینی ایک وقت میں ایک لائن پیٹرن بناتی ہے ہر داغ شکل اور تال کی کہانی کہتا ہے',
   },
   ta: {
     humCircle: 'விமானம்',
@@ -336,6 +357,8 @@ export const FORMULA_TEXTS: Record<Language, {
     brainMesh: 'நரம்பு இணைப்பு புறணி சல்கஸ் கைரஸ் மடிப்பு மனம் மூளை உணர்வு சிந்தனை துடிப்பு',
     globalCircuit: 'உயிர்க்கோளம் சுற்று உலகம் இணைப்பு வலை முனை இணைப்பு துடிப்பு உணர்வு உலக மனம் பூமி',
     myceliumNetwork: 'மைசீலியம் நூல் கிளை மீண்டும் இணைப்பு ஊட்டச்சத்து ஓட்டம் நிலத்தடி வலை நூல் சமிக்ஞை பரிமாற்றம் விதை வாழ்க்கை',
+    brushStroke: 'தூரிகை மை சைகை குறி காகிதம் நார் நிறம் எழுத்து கை அழுத்தம் முடி அமைப்பு ஈரம்',
+    archCarving: 'உளி ஒரு வரியில் வடிவங்களைச் செதுக்குகிறது ஒவ்வொரு கோடும் வடிவம் மற்றும் தாளத்தின் கதையைச் சொல்கிறது',
   },
 };
 
