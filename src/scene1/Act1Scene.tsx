@@ -479,7 +479,7 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = 4; // Netlify production: scenes 0-3 only. Local dev: change to SCENES.length
+const TOTAL_SCENES = SCENES.length; // All scenes 0-15 active
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -1724,8 +1724,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
           for (let j = 0; j < 8; j++) {
             const laneFs = laneFontSizes[j];
+            const dMin = j * 0.065;
+            const dMax = (j + 1) * 0.065;
             const trackSegs = result.segments.filter(
-              s => s.depth === 100 + j && s.y2 <= yThreshold
+              s => s.depth >= dMin && s.depth < dMax && s.y2 <= yThreshold
             );
 
             if (trackSegs.length === 0) continue;
@@ -1757,25 +1759,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
               ctx.fillText(p.text, 0, 0);
               ctx.restore();
             }
-        const brushP = paramsRef.current.brush;
-        ctx.save();
-        ctx.translate(cx, cy);
-        const result = brushStroke("", {
-          streamCount: 18,
-          streamWidth: 240,
-          waveAmplitude: 120,
-        }, t);
-        if (result.type === "segments") {
-          ctx.lineCap = "round";
-          ctx.lineJoin = "round";
-          for (const s of result.segments) {
-            const d = 1 - s.depth;
-            ctx.beginPath();
-            ctx.moveTo(s.x1, s.y1);
-            ctx.lineTo(s.x2, s.y2);
-            ctx.lineWidth = 0.5 + d * 2;
-            ctx.strokeStyle = `rgba(0,140,255,${0.2 + d * 0.8})`;
-            ctx.stroke();
           }
         }
         ctx.restore();
