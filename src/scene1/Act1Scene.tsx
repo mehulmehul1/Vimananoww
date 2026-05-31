@@ -687,7 +687,7 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = SCENES.length; // All 16 scenes active (local dev)
+const TOTAL_SCENES = 4; // Scenes 0-3 for vercel deploy (full 17 scenes on GitHub)
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
