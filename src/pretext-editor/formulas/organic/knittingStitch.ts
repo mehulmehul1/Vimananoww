@@ -1,37 +1,59 @@
 /**
- * Knitting Stitch Formula v3 — Fluid fabric with animated needles
+ * Knitting Stitch Formula v7 — Sequential Stitch Formation
  *
- * - Needles rock/tilt based on scroll progress (simulates knitting motion)
- * - Fabric drapes organically: rows bow, edges wave, gravity pulls lower rows
- * - Stitches have organic variation + slight jitter
- * - Scroll-driven reveal with fluid growth
+ * Real knitting: one stitch at a time. The yarn wraps the needle,
+ * pulls through a loop, the new stitch slides off. Repeat.
+ *
+ * Progress controls WHICH stitch is being formed:
+ * - 0% = needles ready, no fabric
+ * - 50% = halfway through row 5
+ * - 100% = all rows complete
+ *
+ * The working yarn end is always at the "current stitch" being formed.
  */
 
 import type { FormulaFn, LineSegment, FormulaResult } from '../types';
 import { seg } from '../helpers';
 
-function stitchRandom(seed: number): number {
-  const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-  return x - Math.floor(x);
-}
-
-/** Smooth noise for organic curves */
-function smoothNoise(t: number, seed: number): number {
+function noise(t: number, seed: number): number {
   const i = Math.floor(t);
   const f = t - i;
-  const u = f * f * (3 - 2 * f); // smoothstep
-  return lerp(stitchRandom(i + seed), stitchRandom(i + 1 + seed), u);
+  const u = f * f * (3 - 2 * f);
+  const a = Math.sin(i * 127.1 + seed * 311.7) * 43758.5453;
+  const b = Math.sin((i + 1) * 127.1 + seed * 311.7) * 43758.5453;
+  return (a - Math.floor(a)) * (1 - u) + (b - Math.floor(b)) * u;
 }
 
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
+function drape(
+  row: number, col: number,
+  totalRows: number, totalCols: number,
+  spacing: number, time: number,
+  gravity: number, wind: number,
+): { dx: number; dy: number } {
+  const rowT = row / Math.max(1, totalRows - 1);
+  const colT = col / Math.max(1, totalCols - 1);
+  const sag = rowT * rowT * gravity * spacing * 2.5;
+  const windX = Math.sin(time * 0.7 + row * 0.4) * wind * spacing * 0.8 * rowT;
+  const windX2 = Math.sin(time * 1.3 + col * 0.3) * wind * spacing * 0.3 * rowT;
+  const edgeWave = Math.sin(time * 0.5 + row * 0.6) * spacing * 0.15 * (1 - Math.sin(colT * Math.PI)) * rowT;
+  const breathe = Math.sin(time * 0.4) * spacing * 0.1 * rowT;
+  const centerDroop = Math.sin(colT * Math.PI) * gravity * spacing * 0.75 * rowT;
+  const curl = (colT < 0.08 || colT > 0.92)
+    ? (colT < 0.5 ? -1 : 1) * (0.5 - Math.abs(colT - 0.5)) * spacing * 0.3 * rowT
+    : 0;
+  const nx = (noise(row * 0.7 + time * 0.1, col) - 0.5) * spacing * 0.06;
+  const ny = (noise(row * 0.7 + time * 0.1, col + 100) - 0.5) * spacing * 0.08;
+  return {
+    dx: windX + windX2 + edgeWave + curl + nx,
+    dy: sag + breathe + centerDroop + ny,
+  };
 }
 
 export const knittingStitch: FormulaFn = (_text, params, time) => {
   const {
     stitchWidth = 24,
     stitchHeight = 20,
-    rows = 12,
+    rows = 10,
     stitchesPerRow = 16,
     needleLength = 160,
     cableFrequency = 0,
@@ -39,252 +61,189 @@ export const knittingStitch: FormulaFn = (_text, params, time) => {
     yarnSlack = 0.2,
     tension = 0.85,
     progress = 1.0,
+    gravity = 1.0,
+    wind = 0.4,
   } = params;
 
   const segments: LineSegment[] = [];
-  const w = stitchWidth * tension;
-  const h = stitchHeight * tension;
-  const baseRowHeight = h * 1.5;
-  const halfW = w / 2;
+  const spacing = stitchWidth * tension;
+  const cols = stitchesPerRow + 1;
+  const stitchesPerRow_count = cols - 1;
+  const totalStitches = rows * stitchesPerRow_count;
 
-  // Visible rows (scroll-driven)
-  const visibleRows = Math.floor(rows * Math.min(1, Math.max(0, progress)));
-  if (visibleRows === 0) return { type: 'segments', segments };
+  // Which stitch is currently being formed (0 = none, totalStitches = all done)
+  const currentStitch = Math.floor(progress * totalStitches);
+  const currentRow = Math.floor(currentStitch / stitchesPerRow_count);
+  const currentCol = currentStitch % stitchesPerRow_count;
 
-  // ─── Needle animation (tilts based on scroll progress) ──────────
-  // Left needle tilts up, right needle tilts down (and vice versa)
-  const needleTilt = Math.sin(progress * Math.PI * 2) * 0.06;
-  const needleBob = Math.sin(progress * Math.PI * 3) * 4;
+  const getPos = (r: number, c: number) => {
+    const baseX = -((cols - 1) * spacing) / 2 + c * spacing;
+    const baseY = -((rows - 1) * spacing) / 2 + r * spacing;
+    const d = drape(r, c, rows, cols, spacing, time, gravity, wind);
+    return { x: baseX + d.dx, y: baseY + d.dy };
+  };
 
-  const fabricCenterY = 0;
-  const fabricTopY = fabricCenterY - (rows * baseRowHeight) / 2 - h * 2;
+  // ─── Needle animation ──────────────────────────────────────────
+  const topRowY = getPos(0, 0).y;
+  const needleY = topRowY - spacing * 1.8;
+  const rockPhase = time * 1.2;
+  const leftRock = Math.sin(rockPhase);
+  const rightRock = Math.sin(rockPhase + Math.PI);
+  const leftBob = leftRock * 6;
+  const rightBob = rightRock * 6;
+  const tipConverge = Math.sin(rockPhase * 0.5) * spacing * 0.15;
 
-  // Left needle position (animated)
-  const leftNeedleY = fabricTopY - h * 1.5 + needleBob;
-  const leftNeedleAngle = -needleTilt;
-  const leftTipX = -25;
-  const leftTipY = leftNeedleY + 6;
+  const lny = needleY + leftBob;
+  const lnxTip = -spacing * 1.2 + tipConverge;
+  const rny = needleY + rightBob;
+  const rnxTip = spacing * 1.2 - tipConverge;
 
-  // Right needle position (animated — opposite phase)
-  const rightNeedleY = fabricTopY - h * 1.5 - needleBob;
-  const rightNeedleAngle = needleTilt;
-  const rightTipX = 25;
-  const rightTipY = rightNeedleY + 6;
-
-  // Left needle (rotated)
-  const lnx1 = -needleLength - 20;
-  const lny1 = leftNeedleY - 10;
-  const lnx2 = leftTipX;
-  const lny2 = leftTipY;
+  // Left needle
   segments.push({
-    ...seg(
-      lnx1 * Math.cos(leftNeedleAngle) - lny1 * Math.sin(leftNeedleAngle),
-      lnx1 * Math.sin(leftNeedleAngle) + lny1 * Math.cos(leftNeedleAngle),
-      lnx2 * Math.cos(leftNeedleAngle) - lny2 * Math.sin(leftNeedleAngle),
-      lnx2 * Math.sin(leftNeedleAngle) + lny2 * Math.cos(leftNeedleAngle),
-      0
-    ),
+    ...seg(-needleLength - 20, lny - 10 + Math.sin(leftRock * 0.12) * needleLength * 0.3, lnxTip, lny, 0),
     visualOnly: true,
   });
-  // Left needle tip
-  segments.push({
-    ...seg(
-      leftTipX * Math.cos(leftNeedleAngle) - leftTipY * Math.sin(leftNeedleAngle),
-      leftTipX * Math.sin(leftNeedleAngle) + leftTipY * Math.cos(leftNeedleAngle),
-      (leftTipX + 14) * Math.cos(leftNeedleAngle) - (leftTipY + 6) * Math.sin(leftNeedleAngle),
-      (leftTipX + 14) * Math.sin(leftNeedleAngle) + (leftTipY + 6) * Math.cos(leftNeedleAngle),
-      0
-    ),
-    visualOnly: true,
-  });
+  segments.push({ ...seg(lnxTip, lny, lnxTip + 16, lny + 7, 0), visualOnly: true });
 
-  // Right needle (rotated)
-  const rnx1 = needleLength + 20;
-  const rny1 = rightNeedleY - 10;
+  // Right needle
   segments.push({
-    ...seg(
-      rnx1 * Math.cos(rightNeedleAngle) - rny1 * Math.sin(rightNeedleAngle),
-      rnx1 * Math.sin(rightNeedleAngle) + rny1 * Math.cos(rightNeedleAngle),
-      rightTipX * Math.cos(rightNeedleAngle) - rightTipY * Math.sin(rightNeedleAngle),
-      rightTipX * Math.sin(rightNeedleAngle) + rightTipY * Math.cos(rightNeedleAngle),
-      0
-    ),
+    ...seg(needleLength + 20, rny - 10 + Math.sin(rightRock * 0.12) * needleLength * 0.3, rnxTip, rny, 0),
     visualOnly: true,
   });
-  // Right needle tip
-  segments.push({
-    ...seg(
-      rightTipX * Math.cos(rightNeedleAngle) - rightTipY * Math.sin(rightNeedleAngle),
-      rightTipX * Math.sin(rightNeedleAngle) + rightTipY * Math.cos(rightNeedleAngle),
-      (rightTipX - 14) * Math.cos(rightNeedleAngle) - (rightTipY + 6) * Math.sin(rightNeedleAngle),
-      (rightTipX - 14) * Math.sin(rightNeedleAngle) + (rightTipY + 6) * Math.cos(rightNeedleAngle),
-      0
-    ),
-    visualOnly: true,
-  });
+  segments.push({ ...seg(rnxTip, rny, rnxTip - 16, rny + 7, 0), visualOnly: true });
 
   // ─── Active loops on needles (visualOnly) ──────────────────────
-  const activeCount = Math.min(stitchesPerRow, 10);
-  const activeSpacing = (40) / (activeCount + 1);
+  const loopStartX = lnxTip + 16;
+  const activeCount = Math.min(stitchesPerRow_count, 10);
+  const activeSpacing = (rnxTip - loopStartX - 10) / (activeCount + 1);
 
   for (let i = 1; i <= activeCount; i++) {
-    const baseX = -20 + i * activeSpacing;
-    const baseY = leftTipY + 4;
-    const loopH = 8 + stitchRandom(i * 3.7) * 3;
-
-    // Transform by needle angle
-    const cosL = Math.cos(leftNeedleAngle);
-    const sinL = Math.sin(leftNeedleAngle);
-    const tx = (x: number, y: number) => ({
-      x: x * cosL - y * sinL,
-      y: x * sinL + y * cosL,
-    });
-
-    const p1 = tx(baseX - 4, baseY + loopH);
-    const p2 = tx(baseX - 1, baseY);
-    const p3 = tx(baseX + 1, baseY);
-    const p4 = tx(baseX + 4, baseY + loopH);
-    const pBot1 = tx(baseX - 4, baseY + loopH);
-    const pBotM = tx(baseX, baseY + loopH + 2);
-    const pBot2 = tx(baseX + 4, baseY + loopH);
-
-    segments.push({ ...seg(p1.x, p1.y, p2.x, p2.y, 0), visualOnly: true });
-    segments.push({ ...seg(p3.x, p3.y, p4.x, p4.y, 0), visualOnly: true });
-    segments.push({ ...seg(pBot1.x, pBot1.y, pBotM.x, pBotM.y, 0), visualOnly: true });
-    segments.push({ ...seg(pBotM.x, pBotM.y, pBot2.x, pBot2.y, 0), visualOnly: true });
+    const t = i / (activeCount + 1);
+    const lx = loopStartX + activeSpacing * i;
+    const ly = lny + (rny - lny) * t + 4;
+    const loopH = 8 + Math.sin(time * 2 + i * 0.5) * 1.5;
+    segments.push({ ...seg(lx - 4, ly + loopH, lx - 1, ly, 0), visualOnly: true });
+    segments.push({ ...seg(lx + 1, ly, lx + 4, ly + loopH, 0), visualOnly: true });
+    segments.push({ ...seg(lx - 4, ly + loopH, lx, ly + loopH + 2, 0), visualOnly: true });
+    segments.push({ ...seg(lx, ly + loopH + 2, lx + 4, ly + loopH, 0), visualOnly: true });
   }
 
-  // ─── Working yarn (from right needle to off-screen) ─────────────
-  const yarnSourceX = needleLength + 70;
-  const yarnSourceY = rightNeedleY - 40;
+  // ─── Yarn source to needle ─────────────────────────────────────
+  const yarnSourceX = needleLength + 80;
+  const yarnSourceY = rny - 40;
+  segments.push({ ...seg(yarnSourceX, yarnSourceY, rnxTip + 12, rny - 6, 0.1) });
+  segments.push({ ...seg(rnxTip + 12, rny - 6, rnxTip + 4, rny + 12, 0.15) });
+  segments.push({ ...seg(rnxTip + 4, rny + 12, rnxTip - 6, rny + 8, 0.15) });
 
-  const cosR = Math.cos(rightNeedleAngle);
-  const sinR = Math.sin(rightNeedleAngle);
-  const rtx = (x: number, y: number) => ({
-    x: x * cosR - y * sinR,
-    y: x * sinR + y * cosR,
-  });
+  // ─── Sequential stitch formation ──────────────────────────────
+  // Completed stitches: render full V + connector
+  // Current stitch: render partial (yarn forming it)
+  // Future stitches: nothing
 
-  const yarnToNeedle = rtx(rightTipX + 6, rightTipY - 2);
-  const yarnWrap1 = rtx(rightTipX + 2, rightTipY + 10);
-  const yarnWrap2 = rtx(rightTipX - 5, rightTipY + 6);
-  const yarnDrop = rtx(rightTipX - 8, rightTipY + 30);
+  // First: needle drop to row 0, col 0 (if any stitches formed)
+  if (currentStitch > 0) {
+    const firstPos = getPos(0, 0);
+    segments.push({ ...seg(rnxTip - 6, rny + 8, firstPos.x + spacing * 0.3, firstPos.y + spacing * 0.4, 0.1) });
+  }
 
-  segments.push({ ...seg(yarnSourceX, yarnSourceY, yarnToNeedle.x, yarnToNeedle.y, 0.1) });
-  segments.push({ ...seg(yarnToNeedle.x, yarnToNeedle.y, yarnWrap1.x, yarnWrap1.y, 0.15) });
-  segments.push({ ...seg(yarnWrap1.x, yarnWrap1.y, yarnWrap2.x, yarnWrap2.y, 0.15) });
-  segments.push({ ...seg(yarnWrap2.x, yarnWrap2.y, yarnDrop.x, yarnDrop.y, 0.1) });
+  // Render each completed stitch and its connectors
+  for (let s = 0; s < currentStitch; s++) {
+    const row = Math.floor(s / stitchesPerRow_count);
+    const colInRow = s % stitchesPerRow_count;
+    const isEvenRow = row % 2 === 0;
+    const c = isEvenRow ? colInRow : stitchesPerRow_count - 1 - colInRow;
+    const cNext = isEvenRow ? colInRow + 1 : stitchesPerRow_count - 2 - colInRow;
 
-  // ─── Yarn tail (bottom left, drooping) ─────────────────────────
-  const tailY = fabricCenterY + (visibleRows * baseRowHeight) / 2 + h;
-  segments.push({ ...seg(-stitchesPerRow * w / 2 - halfW, tailY, -stitchesPerRow * w / 2 - 55, tailY + 25, 0) });
-  segments.push({ ...seg(-stitchesPerRow * w / 2 - 55, tailY + 25, -stitchesPerRow * w / 2 - 100, tailY + 18, 0) });
+    const pos = getPos(row, c);
+    const posNext = getPos(row, cNext);
 
-  // ─── Fabric body: Fluid V-stitches ──────────────────────────────
-  const totalWidth = stitchesPerRow * w;
+    // Stitch V-shape
+    const cx = (pos.x + posNext.x) / 2;
+    const bottomY = pos.y + spacing * 0.5;
+    const topY = pos.y - spacing * 0.2;
+    const leftX = pos.x + spacing * 0.1;
+    const rightX = posNext.x - spacing * 0.1;
 
-  for (let r = 0; r < visibleRows; r++) {
-    // Row Y with gravity: lower rows hang lower (draping effect)
-    const gravityDip = Math.pow(r / rows, 1.5) * h * 0.8;
-    const rowBaseY = fabricCenterY - (rows * baseRowHeight) / 2 + r * baseRowHeight + gravityDip;
-
-    // Row curvature: bow downward in center (fabric weight)
-    const rowBow = Math.sin((r / Math.max(1, rows - 1)) * Math.PI) * h * 0.3;
-
-    const isEvenRow = r % 2 === 0;
-
-    // Edge waviness (left and right edges aren't straight)
-    const edgeWaveL = smoothNoise(r * 0.8, 42) * w * 0.3;
-    const edgeWaveR = smoothNoise(r * 0.8, 99) * w * 0.3;
-
-    // Row-end connector
-    if (r > 0) {
-      const prevRow = r - 1;
-      const prevGravityDip = Math.pow(prevRow / rows, 1.5) * h * 0.8;
-      const prevRowY = fabricCenterY - (rows * baseRowHeight) / 2 + prevRow * baseRowHeight + prevGravityDip;
-
-      const endX = (prevRow % 2 === 0)
-        ? -totalWidth / 2 + halfW + edgeWaveL
-        : totalWidth / 2 - halfW - edgeWaveR;
-      const startX = isEvenRow
-        ? -totalWidth / 2 + halfW + edgeWaveL
-        : totalWidth / 2 - halfW - edgeWaveR;
-
-      // Curved connector
-      const midX = (endX + startX) / 2;
-      const midY = prevRowY + baseRowHeight * 0.5;
-      segments.push({ ...seg(endX, prevRowY + h * 0.5, midX, midY - 4, 0.2) });
-      segments.push({ ...seg(midX, midY - 4, startX, rowBaseY - h * 0.2, 0.2) });
+    let cableShift = 0;
+    if (cableFrequency > 0 && c % cableFrequency === 0 && c + cableOffset < cols - 1) {
+      cableShift = Math.sin(time * 0.4 + c * 0.7) * spacing * 0.25;
     }
 
-    // First stitch connection
-    if (r === 0) {
-      const firstX = isEvenRow
-        ? -totalWidth / 2 + halfW + edgeWaveL
-        : totalWidth / 2 - halfW - edgeWaveR;
-      segments.push({ ...seg(yarnDrop.x, yarnDrop.y, firstX, rowBaseY + h * 0.5, 0.1) });
+    // Full V (completed stitch)
+    segments.push({ ...seg(leftX + cableShift, bottomY, cx + cableShift, topY, row * 0.06) });
+    segments.push({ ...seg(cx + cableShift, topY, rightX + cableShift, bottomY, row * 0.06) });
+
+    // Connector to next stitch (if not last in row)
+    if (colInRow < stitchesPerRow_count - 1) {
+      const slackY = bottomY + spacing * yarnSlack;
+      const nextC = isEvenRow ? colInRow + 1 : stitchesPerRow_count - 2 - colInRow;
+      const nextPos = getPos(row, isEvenRow ? colInRow + 2 : stitchesPerRow_count - 3 - colInRow);
+      segments.push({ ...seg(rightX + cableShift, bottomY, (rightX + nextPos.x - spacing * 0.1) / 2, slackY, row * 0.06 + 0.03) });
+      segments.push({ ...seg((rightX + nextPos.x - spacing * 0.1) / 2, slackY, nextPos.x - spacing * 0.1 + cableShift, bottomY, row * 0.06 + 0.03) });
     }
 
-    // Generate curved V-stitches across the row
-    for (let s = 0; s < stitchesPerRow; s++) {
-      const col = isEvenRow ? s : stitchesPerRow - 1 - s;
-
-      // X position with edge wave interpolation
-      const edgeT = col / (stitchesPerRow - 1);
-      const edgeOffset = lerp(edgeWaveL, -edgeWaveR, edgeT);
-      const x = -totalWidth / 2 + col * w + halfW + edgeOffset;
-
-      // Y with row curvature (bow in center)
-      const bowFactor = Math.sin(edgeT * Math.PI);
-      const y = rowBaseY + bowFactor * rowBow;
-
-      // Organic wobble
-      const seed = r * 100 + s;
-      const wobbleX = (stitchRandom(seed) - 0.5) * w * 0.1;
-      const wobbleH = (stitchRandom(seed + 50) - 0.5) * h * 0.15;
-
-      // Cable crossing
-      let cableShift = 0;
-      if (cableFrequency > 0 && col % cableFrequency === 0 && col + cableOffset < stitchesPerRow) {
-        const cablePhase = Math.sin(time * 0.4 + col * 0.7);
-        cableShift = cablePhase * w * 0.35;
-      }
-
-      const cx = x + wobbleX + cableShift;
-      const bottomY = y + h + wobbleH;
-      const topY = y;
-
-      // Curved V-stitch (6 segments per stitch)
-      const leftBotX = cx - halfW * 0.9;
-      const leftMidX = cx - halfW * 0.3;
-      const leftMidY = bottomY - h * 0.4;
-      segments.push({ ...seg(leftBotX, bottomY, leftMidX, leftMidY, r * 0.08) });
-      segments.push({ ...seg(leftMidX, leftMidY, cx, topY, r * 0.08) });
-
-      const rightMidX = cx + halfW * 0.3;
-      const rightMidY = bottomY - h * 0.4;
-      const rightBotX = cx + halfW * 0.9;
-      segments.push({ ...seg(cx, topY, rightMidX, rightMidY, r * 0.08) });
-      segments.push({ ...seg(rightMidX, rightMidY, rightBotX, bottomY, r * 0.08) });
-
-      // Bottom curve
-      segments.push({ ...seg(leftBotX, bottomY, cx, bottomY + 2, r * 0.08 + 0.03) });
-      segments.push({ ...seg(cx, bottomY + 2, rightBotX, bottomY, r * 0.08 + 0.03) });
-
-      // Slack connector to next stitch
-      if (s < stitchesPerRow - 1) {
-        const nextCol = isEvenRow ? col + 1 : col - 1;
-        const nextEdgeT = nextCol / (stitchesPerRow - 1);
-        const nextEdgeOffset = lerp(edgeWaveL, -edgeWaveR, nextEdgeT);
-        const nextX = -totalWidth / 2 + nextCol * w + halfW + nextEdgeOffset;
-        const nextBowFactor = Math.sin(nextEdgeT * Math.PI);
-        const nextY = rowBaseY + nextBowFactor * rowBow;
-        const slackY = Math.max(bottomY, nextY) + h * yarnSlack;
-
-        segments.push({ ...seg(rightBotX, bottomY, (rightBotX + nextX) / 2, slackY, r * 0.08 + 0.04) });
-        segments.push({ ...seg((rightBotX + nextX) / 2, slackY, nextX - halfW * 0.9, nextY + h + wobbleH, r * 0.08 + 0.04) });
-      }
+    // Row-end connector (yarn travels up to next row)
+    if (colInRow === stitchesPerRow_count - 1 && row < currentRow) {
+      const endPos = getPos(row, cNext);
+      const nextRowStart = isEvenRow ? 0 : stitchesPerRow_count;
+      const nextPos = getPos(row + 1, nextRowStart);
+      const midX = (endPos.x + nextPos.x) / 2;
+      const midY = endPos.y - spacing * 0.3;
+      segments.push({ ...seg(endPos.x, endPos.y - spacing * 0.4, midX, midY, 0.2) });
+      segments.push({ ...seg(midX, midY, nextPos.x, nextPos.y + spacing * 0.3, 0.2) });
     }
+  }
+
+  // ─── Current stitch being formed (partial V) ──────────────────
+  if (currentStitch < totalStitches && currentStitch > 0) {
+    const row = currentRow;
+    const colInRow = currentCol;
+    const isEvenRow = row % 2 === 0;
+    const c = isEvenRow ? colInRow : stitchesPerRow_count - 1 - colInRow;
+    const cNext = isEvenRow ? colInRow + 1 : stitchesPerRow_count - 2 - colInRow;
+
+    const pos = getPos(row, c);
+    const posNext = getPos(row, cNext);
+
+    const cx = (pos.x + posNext.x) / 2;
+    const bottomY = pos.y + spacing * 0.5;
+    const topY = pos.y - spacing * 0.2;
+    const leftX = pos.x + spacing * 0.1;
+    const rightX = posNext.x - spacing * 0.1;
+
+    // Partial stitch: yarn is forming the V
+    // Interpolation: 0 = just started, 1 = almost done
+    const stitchProgress = (progress * totalStitches) - currentStitch;
+
+    if (stitchProgress < 0.5) {
+      // First half: left leg forming
+      const t = stitchProgress * 2;
+      const endX = leftX + (cx - leftX) * t;
+      const endY = bottomY + (topY - bottomY) * t;
+      segments.push({ ...seg(leftX, bottomY, endX, endY, row * 0.06) });
+    } else {
+      // Second half: right leg forming
+      const t = (stitchProgress - 0.5) * 2;
+      const endX = cx + (rightX - cx) * t;
+      const endY = topY + (bottomY - topY) * t;
+      segments.push({ ...seg(cx, topY, endX, endY, row * 0.06) });
+    }
+
+    // Working yarn end: always at the current stitch tip
+    const yarnEndX = stitchProgress < 0.5 ? leftX + (cx - leftX) * (stitchProgress * 2) : cx + (rightX - cx) * ((stitchProgress - 0.5) * 2);
+    const yarnEndY = stitchProgress < 0.5 ? bottomY + (topY - bottomY) * (stitchProgress * 2) : topY + (bottomY - topY) * ((stitchProgress - 0.5) * 2);
+
+    // Small dot at yarn end (the active stitch point)
+    segments.push({ ...seg(yarnEndX - 2, yarnEndY, yarnEndX + 2, yarnEndY, 0) });
+    segments.push({ ...seg(yarnEndX, yarnEndY - 2, yarnEndX, yarnEndY + 2, 0) });
+  }
+
+  // ─── Yarn tail ────────────────────────────────────────────────
+  if (currentStitch >= totalStitches) {
+    const tailCol = rows % 2 === 0 ? 0 : cols - 1;
+    const tail = getPos(rows - 1, tailCol);
+    segments.push({ ...seg(tail.x, tail.y, tail.x - 50, tail.y + 20, 0) });
+    segments.push({ ...seg(tail.x - 50, tail.y + 20, tail.x - 90, tail.y + 12, 0) });
   }
 
   return { type: 'segments', segments };

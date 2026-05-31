@@ -29,9 +29,8 @@ import {
   globalCircuit,
   myceliumNetwork,
   brushStroke,
-  knittingStitch,
-  letterGrid,
   scribeFlow,
+  knittingStitch,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
@@ -687,7 +686,8 @@ const SCENES: SceneDef[] = [
   },
 ];
 
-const TOTAL_SCENES = 4; // Scenes 0-3 for vercel deploy (full 17 scenes on GitHub)
+// Production (Vercel): only first 4 scenes. Local: all scenes.
+const TOTAL_SCENES = import.meta.env.PROD ? 4 : SCENES.length;
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -2037,31 +2037,87 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.clip();
 
         // ── Column arch outline (carries text first + subtle border) ──
-        const archSegs = 8;
+        const archSegs = 12; // more segments for smoother curves
         const archSegmentsPre: LineSegment[] = [];
         const apexY = archBase - colW * 0.85;
-        // Left arch: bottom to apex (continuous)
+
+        // Helper: compute point on quadratic bezier
+        const bezierPoint = (p0: number, p1: number, p2: number, t: number) =>
+          (1-t)*(1-t)*p0 + 2*(1-t)*t*p1 + t*t*p2;
+
+        // Helper: compute tangent angle on quadratic bezier
+        const bezierAngle = (p0: number, p1: number, p2: number, t: number) => {
+          const dx = 2*(1-t)*(p1-p0) + 2*t*(p2-p1);
+          const dy = 2*(1-t)*(p1-p0) + 2*t*(p2-p1);
+          return Math.atan2(dy, dx);
+        };
+
+        // ── Outer arch frame (depth 0 — main border, gets text) ──
+        // Left arch curve
         for (let i = 0; i < archSegs; i++) {
           const t1 = i / archSegs, t2 = (i + 1) / archSegs;
-          const llx = (1-t1)*(1-t1)*colX + 2*(1-t1)*t1*(colX-colW*0.12) + t1*t1*0;
-          const lly = (1-t1)*(1-t1)*archBase + 2*(1-t1)*t1*(archBase-colW*0.3) + t1*t1*apexY;
-          const llx2 = (1-t2)*(1-t2)*colX + 2*(1-t2)*t2*(colX-colW*0.12) + t2*t2*0;
-          const lly2 = (1-t2)*(1-t2)*archBase + 2*(1-t2)*t2*(archBase-colW*0.3) + t2*t2*apexY;
-          archSegmentsPre.push({ x1: llx, y1: lly, x2: llx2, y2: lly2, angle: 0, length: 0, depth: 0.4 });
+          archSegmentsPre.push({
+            x1: bezierPoint(colX, colX - colW * 0.12, 0, t1),
+            y1: bezierPoint(archBase, archBase - colW * 0.3, apexY, t1),
+            x2: bezierPoint(colX, colX - colW * 0.12, 0, t2),
+            y2: bezierPoint(archBase, archBase - colW * 0.3, apexY, t2),
+            angle: 0, length: 0, depth: 0,
+          });
         }
-        // Right arch: apex to bottom (continuous after left arch)
+        // Right arch curve
         for (let i = 0; i < archSegs; i++) {
           const t1 = i / archSegs, t2 = (i + 1) / archSegs;
-          const rrx = (1-t1)*(1-t1)*colRight + 2*(1-t1)*t1*(colRight+colW*0.12) + t1*t1*0;
-          const rry = (1-t1)*(1-t1)*archBase + 2*(1-t1)*t1*(archBase-colW*0.3) + t1*t1*apexY;
-          const rrx2 = (1-t2)*(1-t2)*colRight + 2*(1-t2)*t2*(colRight+colW*0.12) + t2*t2*0;
-          const rry2 = (1-t2)*(1-t2)*archBase + 2*(1-t2)*t2*(archBase-colW*0.3) + t2*t2*apexY;
-          archSegmentsPre.push({ x1: rrx, y1: rry, x2: rrx2, y2: rry2, angle: 0, length: 0, depth: 0.4 });
+          archSegmentsPre.push({
+            x1: bezierPoint(colRight, colRight + colW * 0.12, 0, t1),
+            y1: bezierPoint(archBase, archBase - colW * 0.3, apexY, t1),
+            x2: bezierPoint(colRight, colRight + colW * 0.12, 0, t2),
+            y2: bezierPoint(archBase, archBase - colW * 0.3, apexY, t2),
+            angle: 0, length: 0, depth: 0,
+          });
         }
-        // Left vertical, bottom band, right vertical
-        archSegmentsPre.push({ x1: colX, y1: archBase, x2: colX, y2: colBottom, angle: 0, length: 0, depth: 0.4 });
-        archSegmentsPre.push({ x1: colX, y1: colBottom, x2: colRight, y2: colBottom, angle: 0, length: 0, depth: 0.4 });
-        archSegmentsPre.push({ x1: colRight, y1: colBottom, x2: colRight, y2: archBase, angle: 0, length: 0, depth: 0.4 });
+        // Left vertical
+        archSegmentsPre.push({ x1: colX, y1: archBase, x2: colX, y2: colBottom, angle: 0, length: 0, depth: 0 });
+        // Bottom horizontal
+        archSegmentsPre.push({ x1: colX, y1: colBottom, x2: colRight, y2: colBottom, angle: 0, length: 0, depth: 0 });
+        // Right vertical
+        archSegmentsPre.push({ x1: colRight, y1: colBottom, x2: colRight, y2: archBase, angle: 0, length: 0, depth: 0 });
+
+        // ── Inner arch frame (depth 0.15 — second stroke, also gets text) ──
+        const innerInset = 6 * sc;
+        const innerApexY = apexY + innerInset * 1.2;
+        const innerLeft = colX + innerInset;
+        const innerRight = colRight - innerInset;
+        const innerArchBase = archBase + innerInset * 0.5;
+        const innerBottom = colBottom - innerInset;
+
+        // Left inner arch curve
+        for (let i = 0; i < archSegs; i++) {
+          const t1 = i / archSegs, t2 = (i + 1) / archSegs;
+          archSegmentsPre.push({
+            x1: bezierPoint(innerLeft, innerLeft - colW * 0.10, 0, t1),
+            y1: bezierPoint(innerArchBase, innerArchBase - colW * 0.28, innerApexY, t1),
+            x2: bezierPoint(innerLeft, innerLeft - colW * 0.10, 0, t2),
+            y2: bezierPoint(innerArchBase, innerArchBase - colW * 0.28, innerApexY, t2),
+            angle: 0, length: 0, depth: 0.15,
+          });
+        }
+        // Right inner arch curve
+        for (let i = 0; i < archSegs; i++) {
+          const t1 = i / archSegs, t2 = (i + 1) / archSegs;
+          archSegmentsPre.push({
+            x1: bezierPoint(innerRight, innerRight + colW * 0.10, 0, t1),
+            y1: bezierPoint(innerArchBase, innerArchBase - colW * 0.28, innerApexY, t1),
+            x2: bezierPoint(innerRight, innerRight + colW * 0.10, 0, t2),
+            y2: bezierPoint(innerArchBase, innerArchBase - colW * 0.28, innerApexY, t2),
+            angle: 0, length: 0, depth: 0.15,
+          });
+        }
+        // Inner left vertical
+        archSegmentsPre.push({ x1: innerLeft, y1: innerArchBase, x2: innerLeft, y2: innerBottom, angle: 0, length: 0, depth: 0.15 });
+        // Inner bottom
+        archSegmentsPre.push({ x1: innerLeft, y1: innerBottom, x2: innerRight, y2: innerBottom, angle: 0, length: 0, depth: 0.15 });
+        // Inner right vertical
+        archSegmentsPre.push({ x1: innerRight, y1: innerBottom, x2: innerRight, y2: innerArchBase, angle: 0, length: 0, depth: 0.15 });
 
         // ── Generate ornament segments — arch-adaptive tiling ──
         const segs: LineSegment[] = [...archSegmentsPre];
@@ -2398,34 +2454,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
         ctx.restore(); // end clip
 
-        // ── Column outline ──
-        ctx.strokeStyle = "rgba(200, 170, 130, 0.60)";
-        ctx.lineWidth = 2.5 * sc;
-        ctx.shadowColor = "rgba(200, 170, 130, 0.12)";
-        ctx.shadowBlur = 5 * sc;
-        ctx.beginPath();
-        ctx.moveTo(colX, colBottom);
-        ctx.lineTo(colX, archBase);
-        ctx.quadraticCurveTo(colX - colW * 0.12, archBase - colW * 0.3, 0, archBase - colW * 0.85);
-        ctx.quadraticCurveTo(colRight + colW * 0.12, archBase - colW * 0.3, colRight, archBase);
-        ctx.lineTo(colRight, colBottom);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // ── Style label ──
-        const LABELS = ["★ INDIAN JALI", "★ ISLAMIC GEOMETRIC", "★ GOTHIC TRACERY"];
-        ctx.fillStyle = "rgba(200, 170, 130, 0.55)";
-        ctx.font = `${Math.max(8, 9 * sc * sc)}px ${FONT_PRIMARY}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "top";
-        ctx.globalAlpha = 0.4 + 0.4 * Math.abs(Math.sin(t * 1.3));
-        ctx.fillText(LABELS[styleIdx], 0, colBottom + 14 * sc);
-        ctx.globalAlpha = 1;
-
         ctx.restore();
       }
 
-      // === THE KNITTING (scene 16) — Fluid fabric with animated needles ===
+      // === THE KNITTING (scene 16) — Cloth-simulated fabric ===
       if (renderScene === 16) {
         const knitP = theatre.knitting;
         ctx.save();
@@ -2434,12 +2466,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         const knitText = formulaTexts.knitting;
         const knitScale = Math.min(w, h) / 900;
         ctx.scale(knitScale, knitScale);
-
-        // Gentle fabric sway (simulates hanging textile)
-        const sway = Math.sin(t * 0.3) * 0.015;
-        const swayY = Math.sin(t * 0.4) * 3;
-        ctx.rotate(sway);
-        ctx.translate(0, swayY);
 
         // Scroll-driven progress
         const knitProgress = clamp01(progress);
@@ -2455,6 +2481,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           yarnSlack: knitP.yarnSlack,
           tension: knitP.tension,
           progress: knitProgress,
+          gravity: knitP.gravity,
+          wind: knitP.wind,
         }, t);
 
         if (result.type === "segments") {
@@ -2506,7 +2534,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
           // Draw yarn path (fluid stitch lines)
           if (yarnSegs.length > 0) {
-            // Yarn shadow (offset, faint)
+            // Yarn shadow
             ctx.strokeStyle = tone.isVoid
               ? "rgba(80, 60, 30, 0.1)"
               : "rgba(60, 40, 20, 0.08)";
@@ -2532,7 +2560,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             }
             ctx.stroke();
 
-            // Yarn highlight (gives thread depth)
+            // Yarn highlight
             ctx.strokeStyle = tone.isVoid
               ? "rgba(245, 235, 210, 0.18)"
               : "rgba(255, 250, 240, 0.22)";
@@ -2576,7 +2604,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
-      // === THE SCRIBE (scene 17) — Pretext-style handwriting with 3D pen ===
+      // === THE SCRIBE (scene 17) — Paper stack with flying pages ===
       if (renderScene === 17) {
         ctx.save();
         ctx.translate(cx, cy);
@@ -2585,119 +2613,195 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         const scribeScale = Math.min(w, h) / 1200;
         ctx.scale(scribeScale, scribeScale);
 
-        // Scroll-driven writing progress
-        let scribeProgress = clamp01(progress);
-        // NaN safety
+        // Scroll-driven writing progress (0 to totalPages)
+        let scribeProgress = clamp01(progress) * 4;
         if (scribeProgress !== scribeProgress) scribeProgress = 0;
 
-        // Reset pen angle on scene entry
-        if (scribeProgress < 0.01) penAngleRef.current = -Math.PI / 4;
+        const pageW = 280;
+        const pageH = 400;
+        const marginX = 28;
+        const marginY = 38;
+        const lineSpacing = 21;
+        const linesPerPage = 16;
+        const totalPages = 4;
+        const stackCount = 6; // visible pages in the stack underneath
 
-        // ── 3D Paper Perspective ──
-        const pageW = 340;
-        const pageH = 460;
-        const marginX = 35;
-        const marginY = 50;
-        const charWidth = 18;
-        const charHeight = 24;
-        const charsPerLine = 16;
-        const lineSpacing = 26;
-
-        // Apply perspective transform
+        // ── High-angle, three-quarter perspective transform ──
+        // Like looking down at a desk from above-right
         ctx.save();
-        ctx.transform(1, 0, 0.06, 0.96, 0, 25);
+        ctx.transform(0.92, 0.08, -0.04, 0.85, 0, 30);
 
-        // ── Paper Background ──
-        const paperX = -pageW / 2;
-        const paperY = -pageH / 2;
-
-        // Paper shadow
-        ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
-        ctx.fillRect(paperX + 10, paperY + 10, pageW, pageH);
-
-        // Paper body
+        // ── Stack shadow (soft, underneath everything) ──
         ctx.fillStyle = tone.isVoid
-          ? "rgba(35, 32, 28, 0.9)"
-          : "rgba(252, 248, 242, 0.97)";
-        ctx.fillRect(paperX, paperY, pageW, pageH);
+          ? "rgba(0, 0, 0, 0.3)"
+          : "rgba(0, 0, 0, 0.15)";
+        ctx.beginPath();
+        ctx.ellipse(8, pageH / 2 + 25, pageW * 0.6, 22, 0.05, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Paper texture lines
-        ctx.strokeStyle = tone.isVoid
-          ? "rgba(55, 50, 45, 0.08)"
-          : "rgba(210, 200, 185, 0.12)";
-        ctx.lineWidth = 0.3;
-        for (let i = 0; i < 25; i++) {
-          const ly = paperY + marginY + i * lineSpacing;
-          ctx.beginPath();
-          ctx.moveTo(paperX + marginX - 5, ly);
-          ctx.lineTo(paperX + pageW - marginX + 5, ly);
-          ctx.stroke();
+        // ── Draw stacked pages underneath (bottom to top) ──
+        for (let i = stackCount - 1; i >= 0; i--) {
+          const stackOffsetX = i * 2.5;
+          const stackOffsetY = i * 3;
+          const sx = -pageW / 2 + stackOffsetX;
+          const sy = -pageH / 2 + stackOffsetY;
+
+          // Page border (dark, visible)
+          ctx.strokeStyle = tone.isVoid
+            ? "#c8b898"
+            : "#3a3530";
+          ctx.lineWidth = 1.2;
+          ctx.strokeRect(sx, sy, pageW, pageH);
         }
 
-        // ── Get formula segments ──
+        // ── Active page (top of stack) ──
+        const px = -pageW / 2;
+        const py = -pageH / 2;
+
+        // Page border (darkest, most visible)
+        ctx.strokeStyle = tone.isVoid
+          ? "#d8c8a8"
+          : "#2a2520";
+        ctx.lineWidth = 1.4;
+        ctx.strokeRect(px, py, pageW, pageH);
+
+        // ── Flying pages (completed pages fly out of scene) ──
+        const completedPages = Math.floor(scribeProgress);
+        for (let pIdx = 0; pIdx < completedPages; pIdx++) {
+          // Age = time since this page completed (0 = just completed)
+          const age = scribeProgress - (pIdx + 1);
+          const flyT = Math.min(1, Math.max(0, age * 2.5));
+
+          ctx.save();
+
+          // Fly: upward and right, out of the scene
+          const flyY = -flyT * 500;
+          const flyX = flyT * 200 + pIdx * 20;
+          const flyRot = flyT * 0.3 + pIdx * 0.08;
+          const curl = flyT * 25;
+
+          ctx.translate(flyX, flyY);
+          ctx.rotate(flyRot);
+
+          // Curled page outline
+          ctx.strokeStyle = tone.isVoid
+            ? "#c8b898"
+            : "#3a3530";
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(-pageW / 2, -pageH / 2);
+          ctx.lineTo(pageW / 2, -pageH / 2);
+          ctx.quadraticCurveTo(pageW / 2 + curl, 0, pageW / 2, pageH / 2);
+          ctx.lineTo(-pageW / 2, pageH / 2);
+          ctx.quadraticCurveTo(-pageW / 2 - curl * 0.3, 0, -pageW / 2, -pageH / 2);
+          ctx.closePath();
+          ctx.stroke();
+
+          // Draw text lines on flying page
+          const flyLineStartX = -pageW / 2 + marginX;
+          const flyLineEndX = pageW / 2 - marginX;
+          const flyLineStartY = -pageH / 2 + marginY;
+          const flyLineLen = flyLineEndX - flyLineStartX;
+
+          ctx.lineCap = "round";
+          ctx.lineWidth = 0.4;
+          ctx.strokeStyle = tone.isVoid
+            ? "rgba(180, 165, 140, 0.5)"
+            : "rgba(80, 70, 60, 0.5)";
+
+          // Generate full lines for this completed page
+          const flySegs: LineSegment[] = [];
+          for (let l = 0; l < linesPerPage; l++) {
+            const ly = flyLineStartY + l * lineSpacing;
+            const dx = flyLineEndX - flyLineStartX;
+            flySegs.push({
+              x1: flyLineStartX, y1: ly,
+              x2: flyLineEndX, y2: ly,
+              angle: 0,
+              length: dx,
+              depth: 0,
+            });
+          }
+
+          // Draw the lines
+          for (const s of flySegs) {
+            ctx.beginPath();
+            ctx.moveTo(s.x1, s.y1);
+            ctx.lineTo(s.x2, s.y2);
+            ctx.stroke();
+          }
+
+          // Layout text on flying page lines
+          const flyFontSize = 6;
+          const flyPlacements = layoutTextOnSegments(
+            scribeText, flySegs, flyFontSize, currentFontFamily,
+            { preserveOrder: true },
+          );
+
+          const flyFont = getFontForLanguage(lang, flyFontSize);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          ctx.direction = textDirection(lang);
+          ctx.font = flyFont;
+
+          for (const p of flyPlacements) {
+            if (!p.text.trim()) continue;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.scale(p.scale, p.scale);
+            ctx.globalAlpha = 0.45;
+            ctx.fillStyle = tone.isVoid
+              ? "rgb(160, 145, 125)"
+              : "rgb(60, 55, 50)";
+            ctx.fillText(p.text, 0, 0);
+            ctx.restore();
+          }
+
+          ctx.restore();
+        }
+
+        // ── Get formula segments (manuscript lines) ──
         const result = scribeFlow(scribeText, {
           pageWidth: pageW,
           pageHeight: pageH,
           marginX,
           marginY,
-          charWidth,
-          charHeight,
-          charsPerLine,
           lineSpacing,
+          linesPerPage,
+          totalPages,
           progress: scribeProgress,
         }, t);
 
-        const inkColor = tone.isVoid
-          ? "rgba(170, 155, 135, 0.8)"
-          : "rgba(40, 35, 30, 0.85)";
-
         if (result.type === "segments") {
-          // Separate visual-only segments (borders) from handwriting stroke segments
-          const borderSegs: LineSegment[] = [];
-          const strokeSegs: LineSegment[] = [];
-
+          const lineSegs: LineSegment[] = [];
           for (const s of result.segments) {
-            if (s.visualOnly) {
-              borderSegs.push(s);
-            } else {
-              strokeSegs.push(s);
-            }
+            if (!s.visualOnly) lineSegs.push(s);
           }
 
           ctx.lineCap = "round";
           ctx.lineJoin = "round";
 
-          // ── Draw border/header/footer lines (visual only) ──
-          ctx.lineWidth = 0.8;
+          // ── Draw manuscript lines ──
+          ctx.lineWidth = 0.4;
           ctx.strokeStyle = tone.isVoid
-            ? "rgba(80, 70, 55, 0.2)"
-            : "rgba(40, 35, 30, 0.2)";
-          for (const s of borderSegs) {
+            ? "rgba(100, 90, 75, 0.25)"
+            : "rgba(190, 180, 165, 0.3)";
+          for (const s of lineSegs) {
             ctx.beginPath();
             ctx.moveTo(s.x1, s.y1);
             ctx.lineTo(s.x2, s.y2);
             ctx.stroke();
           }
 
-          // ── Draw handwriting strokes (the actual letter shapes) ──
-          ctx.lineWidth = 1.6;
-          ctx.strokeStyle = inkColor;
-
-          for (const s of strokeSegs) {
-            ctx.beginPath();
-            ctx.moveTo(s.x1, s.y1);
-            ctx.lineTo(s.x2, s.y2);
-            ctx.stroke();
-          }
-
-          // ── Layout pretext text along paper outline ──
+          // ── Layout pretext text along manuscript lines ──
+          const fontSize = 6;
           const placements = layoutTextOnSegments(
-            scribeText, borderSegs, 9, currentFontFamily,
+            scribeText, lineSegs, fontSize, currentFontFamily,
             { preserveOrder: true },
           );
 
-          // ── Render pretext text ──
-          const langFont = getFontForLanguage(lang, 9);
+          const langFont = getFontForLanguage(lang, fontSize);
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
           ctx.direction = textDirection(lang);
@@ -2709,104 +2813,92 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rotation);
             ctx.scale(p.scale, p.scale);
-            ctx.globalAlpha = 0.5 + p.opacity * 0.4;
+            ctx.globalAlpha = 0.5 + p.opacity * 0.45;
             ctx.fillStyle = tone.isVoid
-              ? "rgb(150, 140, 120)"
-              : "rgb(60, 55, 50)";
+              ? "rgb(170, 155, 135)"
+              : "rgb(55, 50, 45)";
             ctx.fillText(p.text, 0, 0);
             ctx.restore();
           }
         }
 
-        // ── Calculate pen position from progress ──
-        const text = scribeText.toUpperCase();
-        const writingState = getWritingState(text, scribeProgress);
-        
-        const currentCharIdx = writingState.charIndex;
-        const currentLine = Math.floor(currentCharIdx / charsPerLine);
-        const currentCharInLine = currentCharIdx % charsPerLine;
-        
-        let penX = paperX + marginX + currentCharInLine * charWidth;
-        let penY = paperY + marginY + currentLine * lineSpacing;
-        
-        // Get stroke endpoint for pen position
-        const currentStrokes = getLetterStrokes(text[currentCharIdx] || ' ');
-        if (currentStrokes.length > 0 && writingState.strokeIndex < currentStrokes.length) {
-          const currentStroke = currentStrokes[writingState.strokeIndex];
-          const pt = getStrokePoint(currentStroke, writingState.strokeProgress);
-          penX += pt.x * charWidth * 0.8;
-          penY += pt.y * charHeight * 0.8;
-        }
+        // ── Calculate quill position ──
+        const lineStartX = -pageW / 2 + marginX;
+        const lineStartY = -pageH / 2 + marginY;
+        const lineLen = pageW - marginX * 2;
+        const clampedProg = Math.max(0, Math.min(scribeProgress, totalPages));
+        const activePageIdx = Math.min(Math.floor(clampedProg), totalPages - 1);
+        const progInPage = clampedProg - activePageIdx;
+        const lineFloat = progInPage * linesPerPage;
+        const lineIdx = Math.min(Math.floor(lineFloat), linesPerPage - 1);
+        const progInLine = lineFloat - lineIdx;
 
-        // ── 3D Pen ──
-        if (scribeProgress > 0.005) {
+        const quillX = lineStartX + lineLen * progInLine;
+        const quillY = lineStartY + lineIdx * lineSpacing;
+
+        // ── Draw quill ──
+        if (scribeProgress > 0.005 && scribeProgress < totalPages) {
           ctx.save();
-          ctx.translate(penX, penY);
-          
-          // Smooth pen rotation — use overall stroke direction, not per-point tangent
-          let targetAngle = -Math.PI / 4;
-          if (currentStrokes.length > 0 && writingState.strokeIndex < currentStrokes.length) {
-            const stroke = currentStrokes[writingState.strokeIndex];
-            // Compute stable angle from stroke start→end (not live tangent which jumps per-segment)
-            const startPt = stroke[0];
-            const endPt = stroke[stroke.length - 1];
-            targetAngle = Math.atan2(endPt.y - startPt.y, endPt.x - startPt.x) - Math.PI / 2;
-          }
-          // Heavy smoothing to avoid visible whipping between strokes/letters
-          let diff = targetAngle - penAngleRef.current;
-          while (diff > Math.PI) diff -= Math.PI * 2;
-          while (diff < -Math.PI) diff += Math.PI * 2;
-          penAngleRef.current += diff * 0.04;
-          ctx.rotate(penAngleRef.current);
+          ctx.translate(quillX, quillY);
 
-          // Pen shadow
-          ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+          // Quill bob
+          const bob = Math.sin(t * 3 + lineIdx * 0.4) * 1.2;
+          ctx.translate(0, bob);
+
+          // Shaft angle
+          const shaftAngle = -Math.PI / 4 + Math.sin(t * 0.8) * 0.03;
+          ctx.rotate(shaftAngle);
+
+          // Quill shadow
+          ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
           ctx.beginPath();
-          ctx.ellipse(4, 4, 14, 5, 0.2, 0, Math.PI * 2);
+          ctx.ellipse(3, 3, 10, 3.5, 0.15, 0, Math.PI * 2);
           ctx.fill();
 
-          // Pen body
-          const bodyGrad = ctx.createLinearGradient(-8, -100, 8, 0);
-          bodyGrad.addColorStop(0, tone.isVoid ? "rgba(80, 70, 55, 0.95)" : "rgba(75, 55, 35, 0.95)");
-          bodyGrad.addColorStop(0.5, tone.isVoid ? "rgba(110, 95, 75, 0.95)" : "rgba(100, 75, 50, 0.95)");
-          bodyGrad.addColorStop(1, tone.isVoid ? "rgba(70, 60, 45, 0.95)" : "rgba(60, 45, 30, 0.95)");
+          // Quill body (feather)
+          const bodyGrad = ctx.createLinearGradient(-5, -70, 5, 0);
+          bodyGrad.addColorStop(0, tone.isVoid ? "rgba(90, 80, 65, 0.95)" : "rgba(85, 65, 45, 0.95)");
+          bodyGrad.addColorStop(0.5, tone.isVoid ? "rgba(120, 105, 85, 0.95)" : "rgba(110, 85, 60, 0.95)");
+          bodyGrad.addColorStop(1, tone.isVoid ? "rgba(75, 65, 50, 0.95)" : "rgba(65, 50, 35, 0.95)");
           ctx.fillStyle = bodyGrad;
           ctx.beginPath();
           ctx.moveTo(0, 0);
-          ctx.quadraticCurveTo(-10, -30, -7, -100);
-          ctx.lineTo(7, -100);
-          ctx.quadraticCurveTo(10, -30, 0, 0);
+          ctx.quadraticCurveTo(-7, -20, -4, -70);
+          ctx.lineTo(4, -70);
+          ctx.quadraticCurveTo(7, -20, 0, 0);
           ctx.closePath();
           ctx.fill();
 
-          // Pen highlight
-          ctx.fillStyle = tone.isVoid ? "rgba(150, 135, 115, 0.3)" : "rgba(140, 110, 80, 0.25)";
+          // Feather highlight
+          ctx.fillStyle = tone.isVoid ? "rgba(160, 145, 125, 0.2)" : "rgba(150, 120, 90, 0.18)";
           ctx.beginPath();
-          ctx.moveTo(-2, -15);
-          ctx.quadraticCurveTo(-6, -50, -4, -85);
-          ctx.lineTo(0, -85);
-          ctx.quadraticCurveTo(-2, -50, 2, -15);
+          ctx.moveTo(-1, -10);
+          ctx.quadraticCurveTo(-3, -35, -2.5, -60);
+          ctx.lineTo(0, -60);
+          ctx.quadraticCurveTo(-0.5, -35, 1, -10);
           ctx.closePath();
           ctx.fill();
 
           // Metal nib
-          const nibGrad = ctx.createLinearGradient(-5, 0, 5, 0);
-          nibGrad.addColorStop(0, "rgba(160, 150, 135, 0.9)");
-          nibGrad.addColorStop(0.5, "rgba(200, 190, 175, 0.95)");
-          nibGrad.addColorStop(1, "rgba(150, 140, 125, 0.9)");
+          const nibGrad = ctx.createLinearGradient(-3.5, 0, 3.5, 0);
+          nibGrad.addColorStop(0, "rgba(155, 145, 130, 0.9)");
+          nibGrad.addColorStop(0.5, "rgba(195, 185, 170, 0.95)");
+          nibGrad.addColorStop(1, "rgba(145, 135, 120, 0.9)");
           ctx.fillStyle = nibGrad;
           ctx.beginPath();
-          ctx.moveTo(0, 3);
-          ctx.lineTo(-5, -12);
-          ctx.lineTo(0, -8);
-          ctx.lineTo(5, -12);
+          ctx.moveTo(0, 2);
+          ctx.lineTo(-3.5, -9);
+          ctx.lineTo(0, -6);
+          ctx.lineTo(3.5, -9);
           ctx.closePath();
           ctx.fill();
 
           // Ink drop
-          ctx.fillStyle = inkColor;
+          ctx.fillStyle = tone.isVoid
+            ? "rgba(140, 130, 115, 0.45)"
+            : "rgba(35, 30, 25, 0.4)";
           ctx.beginPath();
-          ctx.arc(0, 4, 2.5, 0, Math.PI * 2);
+          ctx.arc(0, 3, 1.8, 0, Math.PI * 2);
           ctx.fill();
 
           ctx.restore();

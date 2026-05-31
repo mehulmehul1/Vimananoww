@@ -1,119 +1,109 @@
-import type {
-  FormulaFn,
-  LineSegment,
-} from '../types';
-
-import { seg } from '../helpers';
-import {
-  getLetterStrokes,
-  getStrokePoint,
-  getWritingState,
-} from './handwritingStrokes';
-
 /**
- * THE SCRIBE — Handwriting strokes as pretext segments
- * 
- * Returns LineSegments that trace letter strokes.
- * Text flows along these stroke paths.
- * Animation controlled by progress parameter.
+ * THE SCRIBE — Paper stack with progressive reveal and flying pages
+ *
+ * Visual: A stack of papers viewed from a high-angle, three-quarter perspective.
+ * The quill writes on the top page. When complete, the page flies away
+ * (curves, rotates, fades) revealing the next page underneath.
+ *
+ * Stack anatomy:
+ *   - Bottom layers: visible as edge lines on the left side
+ *   - Active page: where writing happens, lines reveal progressively
+ *   - Flying pages: completed pages animate upward with curl and fade
+ *
+ * Progress: 0 to totalPages (4). Each 1.0 = one full page written.
  */
+
+import type { FormulaFn, LineSegment, FormulaResult } from '../types';
+import { seg } from '../helpers';
+
+export interface ScribeParams {
+  pageWidth?: number;
+  pageHeight?: number;
+  marginX?: number;
+  marginY?: number;
+  lineSpacing?: number;
+  linesPerPage?: number;
+  totalPages?: number;
+  progress?: number;
+  stackLayers?: number;
+  [key: string]: unknown;
+}
+
 export const scribeFlow: FormulaFn = (
-  text,
+  _text,
   params,
-  time
-) => {
+  _time,
+): FormulaResult => {
+  const pageWidth = (params as ScribeParams).pageWidth ?? 300;
+  const pageHeight = (params as ScribeParams).pageHeight ?? 420;
+  const marginX = (params as ScribeParams).marginX ?? 30;
+  const marginY = (params as ScribeParams).marginY ?? 40;
+  const lineSpacing = (params as ScribeParams).lineSpacing ?? 22;
+  const linesPerPage = (params as ScribeParams).linesPerPage ?? 16;
+  const totalPages = (params as ScribeParams).totalPages ?? 4;
+  const progress = (params as ScribeParams).progress ?? 0;
+  const stackLayers = (params as ScribeParams).stackLayers ?? 6;
+
   const segments: LineSegment[] = [];
 
-  const pageWidth = params.pageWidth ?? 340;
-  const pageHeight = params.pageHeight ?? 460;
-  const marginX = params.marginX ?? 35;
-  const marginY = params.marginY ?? 50;
-  const charWidth = params.charWidth ?? 18;
-  const charHeight = params.charHeight ?? 24;
-  const charsPerLine = params.charsPerLine ?? 16;
-  const lineSpacing = params.lineSpacing ?? 26;
-  const progress = params.progress ?? 0;
+  // ── Progress decomposition ──────────────────────────────────────
+  const clampedProgress = Math.max(0, Math.min(progress, totalPages));
+  const currentPageIndex = Math.min(Math.floor(clampedProgress), totalPages - 1);
+  const progressWithinPage = clampedProgress - currentPageIndex;
+  const currentLineFloat = progressWithinPage * linesPerPage;
+  const currentLineIndex = Math.min(Math.floor(currentLineFloat), linesPerPage - 1);
+  const progressWithinLine = currentLineFloat - currentLineIndex;
 
-  // Page bounds
-  const paperX = -pageWidth / 2;
-  const paperY = -pageHeight / 2;
+  // ── Page geometry ───────────────────────────────────────────────
+  const lineStartX = -pageWidth / 2 + marginX;
+  const lineEndX = pageWidth / 2 - marginX;
+  const lineStartY = -pageHeight / 2 + marginY;
+  const lineLength = lineEndX - lineStartX;
 
-  // Get writing state
-  const upperText = text.toUpperCase();
-  const writingState = getWritingState(upperText, progress);
+  // ── 1. Stack edge lines (bottom layers visible on left side) ────
+  // These represent the thickness of the paper stack
+  const edgeX = -pageWidth / 2 - 2;
+  const edgeStartY = -pageHeight / 2 + 3;
+  const layerSpacing = 2.5;
 
-  // =========================================
-  // BORDER SEGMENTS (visual only)
-  // =========================================
-  const borderInset = 12;
-  segments.push(seg(paperX + borderInset, paperY + borderInset, paperX + pageWidth - borderInset, paperY + borderInset, 0, true));
-  segments.push(seg(paperX + pageWidth - borderInset, paperY + borderInset, paperX + pageWidth - borderInset, paperY + pageHeight - borderInset, 0, true));
-  segments.push(seg(paperX + pageWidth - borderInset, paperY + pageHeight - borderInset, paperX + borderInset, paperY + pageHeight - borderInset, 0, true));
-  segments.push(seg(paperX + borderInset, paperY + pageHeight - borderInset, paperX + borderInset, paperY + borderInset, 0, true));
+  for (let i = 0; i < stackLayers; i++) {
+    const y = edgeStartY + i * layerSpacing;
+    // Short horizontal line showing page edge
+    segments.push({
+      ...seg(edgeX - 4, y, edgeX + 12, y, 0),
+      visualOnly: true,
+    });
+  }
 
-  // Header line
-  segments.push(seg(paperX + marginX, paperY + marginY - 20, paperX + pageWidth - marginX, paperY + marginY - 20, 0, true));
+  // ── 2. Active page border ──────────────────────────────────────
+  const px = -pageWidth / 2;
+  const py = -pageHeight / 2;
 
-  // Footer line
-  segments.push(seg(paperX + pageWidth / 2 - 35, paperY + pageHeight - marginY + 20, paperX + pageWidth / 2 + 35, paperY + pageHeight - marginY + 20, 0, true));
+  // Full page outline
+  segments.push({ ...seg(px, py, px + pageWidth, py, 0), visualOnly: true });
+  segments.push({ ...seg(px + pageWidth, py, px + pageWidth, py + pageHeight, 0), visualOnly: true });
+  segments.push({ ...seg(px + pageWidth, py + pageHeight, px, py + pageHeight, 0), visualOnly: true });
+  segments.push({ ...seg(px, py + pageHeight, px, py, 0), visualOnly: true });
 
-  // =========================================
-  // HANDWRITING STROKE SEGMENTS
-  // =========================================
-  for (let i = 0; i < upperText.length; i++) {
-    const ch = upperText[i];
-    const strokes = getLetterStrokes(ch);
+  // ── 3. Manuscript lines (for text layout) ──────────────────────
+  const visibleLines = currentLineIndex + 1;
 
-    // Calculate character position on page
-    const lineIdx = Math.floor(i / charsPerLine);
-    const charInLine = i % charsPerLine;
-    const charX = paperX + marginX + charInLine * charWidth;
-    const charY = paperY + marginY + lineIdx * lineSpacing;
+  for (let lineIdx = 0; lineIdx < visibleLines; lineIdx++) {
+    const y = lineStartY + lineIdx * lineSpacing;
 
-    // Check if character is written
-    const charFullyWritten = i < writingState.charIndex;
-    const charIsCurrent = i === writingState.charIndex;
-
-    if (!charFullyWritten && !charIsCurrent) continue;
-
-    // Draw each stroke of the letter
-    for (let s = 0; s < strokes.length; s++) {
-      const stroke = strokes[s];
-      
-      const isFullyDrawn = charFullyWritten || 
-        (charIsCurrent && s < writingState.strokeIndex);
-      const isCurrentStroke = charIsCurrent && s === writingState.strokeIndex;
-
-      if (!isFullyDrawn && !isCurrentStroke) continue;
-
-      // Sample points along the stroke to create segments
-      const samples = 6;
-      const drawT = isCurrentStroke ? writingState.strokeProgress : 1;
-
-      for (let p = 0; p < samples; p++) {
-        const t1 = (p / samples) * drawT;
-        const t2 = ((p + 1) / samples) * drawT;
-
-        const pt1 = getStrokePoint(stroke, t1);
-        const pt2 = getStrokePoint(stroke, t2);
-
-        // Transform to page coordinates
-        const x1 = charX + pt1.x * charWidth * 0.8;
-        const y1 = charY + pt1.y * charHeight * 0.8;
-        const x2 = charX + pt2.x * charWidth * 0.8;
-        const y2 = charY + pt2.y * charHeight * 0.8;
-
-        // Depth: 1-5 for text lanes, 100+ for visual strokes
-        // Use character index % 5 for lane assignment
-        const depth = i % 5;
-        
-        segments.push(seg(x1, y1, x2, y2, depth));
-      }
+    if (lineIdx === currentLineIndex) {
+      // Current line: partially revealed
+      const revealLength = lineLength * Math.max(0.02, progressWithinLine);
+      segments.push({
+        ...seg(lineStartX, y, lineStartX + revealLength, y, 0),
+      });
+    } else {
+      // Completed line: fully visible
+      segments.push({
+        ...seg(lineStartX, y, lineEndX, y, 0),
+      });
     }
   }
 
-  return {
-    type: 'segments',
-    segments,
-  };
+  return { type: 'segments', segments };
 };

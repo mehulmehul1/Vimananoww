@@ -23,10 +23,10 @@ import { BRAIN_PATHS, BRAIN_WORDS, getCompiledPaths, wordColor, approxPathLength
 import { sierpinskiTriangle } from './geometric/sierpinskiTriangle';
 import { sierpinskiCarpet } from './geometric/sierpinskiCarpet';
 import { fractalSnowflake } from './geometric/fractalSnowflake';
+import { scribeFlow } from './organic/scribeFlow';
 import { brushStroke } from './organic/brushStroke';
 import { knittingStitch } from './organic/knittingStitch';
 import { letterGrid } from './organic/letterGrid';
-import { scribeFlow } from './organic/scribeFlow';
 
 export * from './types';
 export * from './helpers';
@@ -61,9 +61,9 @@ export {
   sierpinskiCarpet,
   fractalSnowflake,
   brushStroke,
-  knittingStitch,
-  letterGrid,
   scribeFlow,
+  letterGrid,
+  knittingStitch,
 };
 
 export const TEMPLATES: Template[] = [
