@@ -5,6 +5,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
+import Lenis from "lenis";
 import {
   textCircle,
   cymaticRing,
@@ -29,12 +30,22 @@ import {
   myceliumNetwork,
   brushStroke,
   knittingStitch,
+  letterGrid,
+  scribeFlow,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
   wordColor,
   type LineSegment,
 } from "../pretext-editor/formulas";
+import {
+  getLetterStrokes,
+  getStrokePoint,
+  getTextStrokeCount,
+  getWritingState,
+  type LetterStrokes,
+  type Stroke,
+} from "../pretext-editor/formulas/organic/handwritingStrokes";
 import { EnvironmentEngine } from "../EnvironmentEngine";
 import { layoutTextOnSegments, type LinePlacement } from "./textLayout";
 
@@ -136,6 +147,176 @@ const BRAIN_SVG_PATHS: string[] = [
   "m134.4 102.5c5.2 3.5 21.6 15.5 24 19.5 2.2 4.1-0.3 7.6-2.3 8.1",
   "m145 101.5c4.5 3.6 14.5 10.5 18.1 16.4 2.4 4.1 4.3 8.7 8.5 8.1",
   "m122.6 122.9c-4.5-0.9-8.1-3.4-10.1-8.4",
+];
+
+// ─── Cave painting SVG paths (prehistoric ochre strokes) ────────────────────
+const CAVE_PATHS: { d: string; thin: boolean }[] = [
+  { d: "m99 70", thin: false },
+  { d: "m98 40-2 2.6 1-2.6 2-2v1l0.9 3.2", thin: false },
+  { d: "m99 37-2 1 2.9-1 1.1-2h1l-0.6 4.5", thin: false },
+  { d: "m101 35-3.4 1h2.4l3-2-0.7 3 2.7-2 2-2", thin: false },
+  { d: "m104 34 1-2 3-3 1.5-0.7-0.5-1.6 0.5-0.2", thin: false },
+  { d: "m104 32v1l3-1", thin: false },
+  { d: "m101 33.3h2", thin: false },
+  { d: "m96.3 46.7 1.7-6.7-1 6", thin: false },
+  { d: "m110 32 4-7-0.3-0.5 1.3-1.1 6-3.9 0.1-0.2-0.1 0.2-6 3.5", thin: false },
+  { d: "m109 31 6-3-5 4", thin: false },
+  { d: "m121 24-1 0.6-0.5 1.4 1 1 0.5-1 0.7-1.5-0.1-0.7-0.6-0.1", thin: false },
+  { d: "m115 28c1-1 2-1.4 4-1.4l1.6 0.4-0.6 1-4 6v1l-1 2v-1l-0.5-2 0.5-3 1-3", thin: false },
+  { d: "m121 26 1 3v3l-1.5 3-2.5 2-3 1 1-2 2-5 3-3", thin: false },
+  { d: "m115 38 2 1 1 2-0.3 4-1.7 5 0.6 2.9 0.8-1-1 1v-0.2", thin: false },
+  { d: "m120 37-1.6 5.8-3.4 4.2-3 2.6v1.4l2-2", thin: false },
+  { d: "m115 40h-2l-2 4 1 2h2 1-2l-1-1 2-4", thin: false },
+  { d: "m113 40-3 1-2 2-4 6-1 4 0.7 0.7h-0.7 0.7", thin: false },
+  { d: "m106 39-3.7 7.2 3.7-7.2 1.6-1.4h0.4l6 1.1", thin: false },
+  { d: "m106.4 45-0.4-4 0.4-1.6", thin: false },
+  { d: "m105.6 52.7h0.8l0.3-5.7-0.3 5.7", thin: false },
+  { d: "m121.5 46.7 0.5-2.7 2-3 1.6-1 3.4 1h2l4-2 4-3 2-3-1-2-2-0.4-5 1-4 1.4-1-2v-2l1-1.6 3-1.8 4-3v-0.6l-0.5 1-1.5-1v-1l1-2 2-1 1-1.4-0.1-2.6-0.9-2-0.4-3 2.4-1h2l2-1 1-1v-1l-0.4-3-2.6-0.5-3 1.5-1 2-2 1.6-3 0.4", thin: false },
+  { d: "m130 6.7 1 0.3", thin: false },
+  { d: "m132 6 1 0.7", thin: false },
+  { d: "m128.3 8.7h6.1", thin: false },
+  { d: "m128.5 10.3 4.5-1.3-2 1v0.3-0.3l3-1", thin: false },
+  { d: "m131.4 10 2.6-1", thin: false },
+  { d: "m131 20h3", thin: false },
+  { d: "m131 21 3-1", thin: false },
+  { d: "m131.7 22 2.3-1", thin: false },
+  { d: "m131.7 17.7 2.3 0.3 2 1-1 3", thin: false },
+  { d: "m134.7 20 0.3-1 1-0.5", thin: false },
+  { d: "m135.7 20 0.7-1 1.6-1", thin: false },
+  { d: "m136 20 0.4-1 2.6-1 0.5-3 1.2-1.6 2.3-0.9 2-0.5 2.6 2 0.9 1-5.5 1.6-4 1.4-3 1.7", thin: false },
+  { d: "m137 7 0.4 1", thin: true },
+  { d: "m138 5 1-1 2-1 0.4 1-1 1", thin: true },
+  { d: "m142 1 3-0.3 1-0.2h0.4l0.6 0.2 1 0.3 1 1 0.4 1 0.6 2 1 1h1l2-0.5 1-0.5 1-1v-1-0.3 0.3l-0.4 1-0.6 1-1 1", thin: false },
+  { d: "m156.7 6.7-1.7 1.3-1.4 1v1l1.4 1 1 2-1 2-1.4 2 0.4 1 1.6-2.4h0.4l-2 2.9-1.4 0.5-1.6 1-2.4 1.6-0.1-0.6 0.5-2 1-2-1.4-2-1.6-3-1-3-1-1-1-2-0.6-2", thin: false },
+  { d: "m143 11 2 1 2 2", thin: false },
+  { d: "m138 6 0.4 0.7", thin: true },
+  { d: "m138.4 7 0.6 0.7", thin: true },
+  { d: "m139 6.7 0.4 1", thin: true },
+  { d: "m137 9h2l2-1 1 3-1-2h-1", thin: false },
+  { d: "m138 10 0.4 1.7 0.6 0.6", thin: true },
+  { d: "m142 8 2-1", thin: false },
+  { d: "m142 9 1 0.7", thin: false },
+  { d: "m142 9 1 0.7h1", thin: true },
+  { d: "m142 14h2l1.6 1", thin: false },
+  { d: "m148 13.4 4-2.4c2-1 4-0.3 7-1v0.3l-2 2-1 0.4", thin: false },
+  { d: "m156.6 8.7-0.6 0.3", thin: false },
+  { d: "m152 22-1 3 0.4 1.5 0.6 0.5 2-4 1.6-1 1.4-1 2-3.3 0.4 0.3v1l0.6-1 0.4-0.5v0.2l-0.4 0.3 0.4-0.3v-0.2 0.5 1l-0.4 2 1.6 0.4 0.8 0.6-0.4 2-1 2 1 1.4 1.4-0.4 3-3-0.4 0.6-1 1.4 1 1 0.4 1.7h-0.8l-0.6-2.7-4 7-1 3.6-1 1.4-1 3-1 2 3 3 0.4 1-0.4 2-1 1-0.4 3.4v-1.4l1.4-3.4 0.4-0.6-0.4-1-2-2", thin: false },
+  { d: "m156 22 2-1h2l1.6 0.4 0.8 0.6-0.4 1-4 5 2 1.7-1-0.7-1-2-2 2-2 3-2 4h3l6-3 2-2", thin: false },
+  { d: "m157 22 1 4v3 2l1 2-2 3-2 4-1 4h1-1-2l-1.4-0.4 0.4-1.6 3-4 2.6-6", thin: false },
+  { d: "m152 29", thin: false },
+  { d: "m144 30-2 2 1 3.6-1 0.4-2-1-1 3-1 4-2 4 1 1 1 2 0.6 2-1.6 1-3 3 2-2 2.6-1.3", thin: false },
+  { d: "m144.4 40", thin: false },
+  { d: "m144.4 40", thin: false },
+  { d: "m144.4 40", thin: false },
+  { d: "m144.4 40 1.6-4 1.6-3 1-0.5 0.8-0.5 2.6 1 1.6 1-0.6 3-3 2-2.4 3-1.6 5-0.4 2v2.3h0.4l-0.4-2.3 1.4-4 1 5 0.6 0.7 0.4-0.7-1-2-1-4 0.6-3 2.4-2 2-1h3l1.6 1 0.4 1 1 4-2 6v2 0.3-0.3", thin: false },
+  { d: "m148 35-1 3v2", thin: false },
+  { d: "m154 29.7 2-2.3 0.6-0.4-0.6 1 1-1", thin: false },
+  { d: "m164 24-1 3", thin: false },
+  { d: "m129 33 2 4-0.4 1.6-0.6 0.4v1h1.4l4.6-6 2-3", thin: false },
+  { d: "m141 33 0.4-2v-0.3 0.3l-0.4 2h0.4", thin: false },
+  { d: "m135 28.6-1-0.3-1.4 0.7-0.6 1", thin: false },
+  { d: "m135 29v2", thin: false },
+  { d: "m123.7 26.7 0.3 0.3", thin: false },
+  { d: "m125.6 28.7-1.6 2.3v2.7l-0.4 0.3-1.6-2 2-3-1 3h-1", thin: false },
+  { d: "m116 65.6 4-2 4-1.6 4-1.7h1.6 0.4l-1 1-5 2.7-6 2.6-2 0.7-0.4 0.4v-1.7l0.4-0.4 3-1.6", thin: false },
+  { d: "m114 59v3l0.4 1.3-0.4-2.3-0.4-2-1 4.3-1.6 1.7 1.6 1h1l-1-2h-2.6l-2-1.3 1.6-1.4 1.4 0.7 0.7 1.3-2.1 2-2.6-0.3-1-1.7 2 1.7 0.6 1-2.6-1-2.4-0.3 3.4 0.3 1.6 1-1.6 2-3.4-0.3 3.4 0.3 2 2 1 3-1 3.6 1-2.6 2.6-0.3-1.6-2.7-2-1 2-0.3 1.6 0.3 1.4-0.7-1.4 0.7 1.8 2-1.8-1 1.4 1-1-2-1.3-1.3 0.3-2.7 1-1", thin: false },
+  { d: "m119 67-2 5-0.4 2v3l0.4 0.3 3-1.7 3-1.6h2l2-1 3-2v0.3l-2 2.4-1.6 0.3h-1.4l-1.4 2-1 0.6-2.6-1 2-0.6", thin: false },
+  { d: "m125 66.6h2l1 0.4 2 2 0.6 1v1.3l-1.6-2.3-2-2h-2.4l0.4 0.3h1.4l-0.8 2.7-1 2-0.6 1h1", thin: false },
+  { d: "m122.6 76 1.4 4v4 2l1 1h4 2 0.4l-1.4-1-1-1 1-4 1-5h1.6 0.4l-2-1-3-1-1 1-2.4 3-0.6 3", thin: false },
+  { d: "m132 76 3 5 1.4 2h2.6l1.6 1 1.4 2 0.6 1v-1l-0.6-2-2-3h-2l-3-3", thin: false },
+  { d: "m136.4 78.7 0.6 1.3 0.6 2h1.4l1-2 1.4-1.7-1.4 2.7h1.4v-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3", thin: false },
+  { d: "m122.6 84h-1.6v1.3l1.6-1.3-1 2-0.6-1", thin: false },
+  { d: "m132.4 84h4l0.6 1h-4.6 4l0.2 1h-2.6l2.4 1", thin: false },
+  { d: "m145.6 76-2.6 8-1 1 1 2h-1l-4-4-3-1h3l4 3 1 3-1 3-2.4 1 1.4-1", thin: false },
+  { d: "m146 76h1l1.6 1.4 2.4 0.6h3 2l0.6 0.7 6-2.7v-2l-2.6-8 2.6 9", thin: false },
+  { d: "m150.4 74 1.6-3 0.6-1 1.4 0.4 1 0.6", thin: false },
+  { d: "m155.6 71h0.4v1h-0.4l-1.6-1", thin: false },
+  { d: "m156 73 0.4 1", thin: false },
+  { d: "m152.4 72-0.4 2.6 0.6 0.4h1l0.4-0.4v-1.6l-0.4-1", thin: false },
+  { d: "m150.4 86 1.2 1.4 2.4-0.4 1 1 3.6 1v-0.4l-2.6-3.6h0.4l1.6 2 0.6 1.6-3.6-0.6-3 0.6-1-0.6", thin: false },
+  { d: "m153 78 2 6-1 2v3l1 5-1 4.6 2 0.4 3-1-2-4-3-4", thin: false },
+  { d: "m155.4 109.7 0.6-0.7-1-4.4 1-4.6v-1", thin: false },
+  { d: "m158.4 99 0.6 5-0.4 3 0.4 2 2 0.4v0.3l-2-0.7", thin: false },
+  { d: "m162.4 79 3.6-2.4 1.4-0.6 1.2 5 5.4 4 1.4 2-0.4 2-1.4 1.3h-1.6l-0.6-2.3-2.4-6-3-2-3.6-1 4.6 2", thin: false },
+  { d: "m173 92-1.6-5.3-1.4-3.7", thin: false },
+  { d: "m169 46 3-2h3.4l2.6 4.6 1.6 3.1-5.6 2-4 0.9-1 0.4-6 1-1 0.6 2-0.6 1.6 0.6 0.4 2.4 1 1h1l1-2-1-2-3-3 0.6-2 1.4-1.4 2 0.7-1 2.7 1 1-2-1v-2l2-5 3 5 3 4 2 3.6 3.4 8.1-5.4 0.6-3.6 1.3v-3.6l0.6-5 2-4 5-1 2.4-1-5.4 2-1 2 6.4-0.7", thin: false },
+  { d: "m176 45v3 4h3l-4 1", thin: false },
+  { d: "m171 44v-4l2-1.3 1 2.3-1 3", thin: false },
+  { d: "m182 48.7 3.6 2.3 0.8 1-0.4 1-4-1-0.6-1 3.6 1h2l3-2 4-2v-2l-3-2-3-1-1 0.3 4 2.7 0.6 2-4.6-2.4h0.6l4.4 2.4 1.6 1 0.4 3-2 2-2 1-3-1-1.4-1 4.4-2", thin: false },
+  { d: "m193 41.4 0.6 3.6 0.4 3v-3l1.6-1 1.4 0.6-1-0.6h-1l-1-3h0.6v2 2-2-2.6l-1.6 4.6", thin: false },
+  { d: "m192 55h2l2.6 3 0.4-0.7-2-2.3h1.6l1.4-0.4-3-0.6", thin: false },
+  { d: "m194 57.3-2.4 0.7-1.6 2h0.6l1-3-1.6-2 1.6 3 2 2.6 0.4-0.3-1-1.3", thin: false },
+  { d: "m193 93.4 5-1 0.6 0.2-3.6 7.4-1.4 4v1.7l2-5.7 3 4.6v0.4l-1-1 0.4 0.6-3-6.6-2-4-0.4-0.4 2.4 0.4", thin: false },
+  { d: "m126 41c-2 1-2 4-1.4 5l1.4 8 0.6 1-0.6-2", thin: false },
+  { d: "m125 49-1.4 3-1 3v0.6l-0.6 0.4 1-1", thin: false },
+  { d: "m131 44-2 1-3 3", thin: false },
+  { d: "m130 45-1 3 1 0.4 1-0.4", thin: false },
+  { d: "m131 46 2-2v2 2h1l-1-1 1-1v-2l1.6 1 0.4 1-1 4-3 5.6v-0.6l4-6", thin: false },
+  { d: "m137 55 1 0.6 1 1.4-1 2 1 1-1 2-2 2v3l0.6 0.7-1 0.3 0.4-1h-2v3-3l-2 2 1-2v-3l-1-1-1-0.4 3 0.4h2l2-3v-2l-1-1h-0.4l0.4 1h-2l-1 1v1l-1-1v1", thin: false },
+  { d: "m131 59 1 2", thin: false },
+  { d: "m139.6 55 0.4 1-1 2", thin: false },
+  { d: "m140.4 56 1.6-3 0.6-1h0.4 1l1.6 1.4-0.6 1.6h-2l-1.6 1-1.4 2-0.4 1v-4", thin: false },
+  { d: "m142 53 1 2v1h2l2 1v2 2h1l1-2v-2l-2-2 3.6 4 1.4-3-2 4 1 2 0.4-1-2.4 2-2 1h-2l-1-1-0.4 1-0.6 2 0.6 2-0.6 1h-2v-1l1-3 1.6-2 0.4-2-2-3 0.6-1 1.4-1 1 1-1 3v2 2l-1 2v2 6l-0.4 2 0.4-7h-1-2l0.4 7", thin: false },
+  { d: "m147.6 53.7 1.4 2.3 1 5 1 1v0.6l0.4-0.3-0.4-1.3-1-1", thin: false },
+  { d: "m150.4 53.4-1.4 3.6 1 2v2 1l1-2", thin: false },
+  { d: "m151 58 2-0.3-2 0.3v2", thin: false },
+  { d: "m119 87c-2-1-3-1-5.4 1-1.6 1-2 6-0.6 7l2 2-2 3v2l1 2v3l-1 4 1 2 0.6 3-1.6 1 4 2 1.6-0.4-0.6-2.6v-5-5-4l-1-4-2-4 1-3 3-1h3l5 1 4-1 3 1 2 3 1 4v4l2 3 1.6 3v3l-0.6 3h-1l1.6-1v-5l-3.6-3-5-4-1-2h-6l-5-1-3 2v4l2 4 6 8v0.6l-1-0.6v-1l-4-5-1-3", thin: false },
+  { d: "m113 97-4 1.6 2 3.4 3 3 0.6 2-5.6 3-2.4 1.6-0.6 1.4 3 1 2 1 3 1 0.6 2-0.6 2 1 4 1.4 1 1.2-0.4 0.4-1.6-3-1-4-2-3.4 0.3-1-0.3 0.4-2 2.6-2.4 3.4-1.6 1.6 2-0.6-2v-1l-1-2h-3l-3.4-4v-1.4l2.4-1 5-1.6v0.6l-1-1.6h-3l-2-2.4v-0.6", thin: false },
+  { d: "m116 87h4l4 1h5 2l4 2 2 2 3 4 2 6 1 5v9l-4 2.6-5 0.4-5 1h-5-8l0.6 1h3.4 6 5 5l7-1 2-1h2 1l-0.4-1-0.6-3v-4l1-4 1-2-2-2-2-3-1-3 1-1h-3l-2-2-3-5-1-2h-3-2v-1l-2-1", thin: false },
+  { d: "m142 93-1 1 1 2 1.6 3 1.4 1h3l2 1v1l-4 2 1.6 2 1.4 0.6 1 0.4-1 2-3 2 2 1 3 1v1l-2 1h-3-3l-1 1 1 1 1 3-3 2-4 1h-3l-4 1h-4-4-3v2l2-1 3-1h2 3 3l3 1 2-1h1v1", thin: false },
+  { d: "m122 124 1 2 1-2 2 3 1-1-1-2 1-1h1l1 1 2 3 0.4-3v-1l1.6 1 1 2 1.6 0.6-0.6-1.6h1.4", thin: false },
+  { d: "m122 124-1 3-1-0.4 1-1.6h-1l-1-1 1-2 1-1 1 2 2 1 1 2h1", thin: false },
+  { d: "m123 121 2 3h1v-3h1l2 3h1l1-3h1v3h1l2-3h1l0.6 2 0.4 1 1-2 1-1v1h1v0.6-0.6", thin: false },
+  { d: "m135 114 1 2h0.6l0.4-1-1-1-0.4 0.6-0.6 1.4", thin: false },
+  { d: "m136 106-2 5-4 4 1 1 1 0.6v-0.6-2l0.4-1", thin: false },
+  { d: "m115 90-1.4 2 1.4 4h4 5l5 1 3-1 4 2 2-2h1v-1l-2-2h-5-5-5l-4-1h-3", thin: false },
+  { d: "m93 75.6-0.4-1.6-0.6-3-1-1-1.4 0.6-1.6 1.4-1.4 2-0.6 2", thin: false },
+  { d: "m87.7 68.7-3.7 3.3-1.4 2-0.6 1.6-6 6.4-2 2v0.6l1-0.6 1-2 6-6 0.6-2 3.4-3 1.7-2.3", thin: false },
+  { d: "m88 76 1-1 1.6-0.4 0.4 1.4-1 1h-1l-0.4-1.4 1-1 1.4 1.4-1 2h1 1.6 1.4l0.6 0.3-0.6 1.7 2 3 3 0.6 2-0.6", thin: false },
+  { d: "m98.4 80 3.2 1h2.4l1-1 1.6-4h0.4l-3 6", thin: false },
+  { d: "m100 78 2 1 1 1", thin: false },
+  { d: "m104 75.3-0.4 4.7 1.4 2 4-2 1-1h0.6l0.4 3-1-2", thin: false },
+  { d: "m89 78.6-3 0.4-1 1-1 2-2 2.6v1.4l-1-1-0.4-4-0.6-1v-2", thin: false },
+  { d: "m86.4 81 0.2 2 2.4 5v2l1 2 3 1 6-4 1-1 1-2 2-2h2l1.6 2v3l-1.6 2-3 2v3l-1 6-2 6-3 4-1.4 2v2l2.4 0.6-1-0.6 1-2 2-3 2-2v-3l-3-4-3-1.4-3-0.3-5 0.3-3 0.8-3 2.2-1 4.4-1 6 1 4.6 1 0.4v-1l-1-4v-5l2 1 1 3 1 1h1l0.6-1-1.6-1-3-4-1-5v-4l1-4 2-2 5 1 4-1", thin: false },
+  { d: "m94 87h-2l-1 2v4", thin: false },
+  { d: "m88 89h-1l-0.4 2 0.4-1", thin: false },
+  { d: "m89 81 1 6v5", thin: false },
+  { d: "m92 78-1 7v5l1-2 1-6v-3l1-1 1 2 1 4 3-0.4 2-0.6 1-2v6 3l1 6-1 5 1 12 0.6 3-0.6 0.6-2 0.4-1 1v1h-1l-0.4-1 0.4-1h3", thin: false },
+  { d: "m82 92.4-2 0.2-1 1-1 2-2 5.4-1 4v3", thin: false },
+  { d: "m78 97-2 6.6-1 4", thin: false },
+  { d: "m82 104h2l2 0.6 0.6 1-0.6 0.4-3 0.6-1-0.6", thin: false },
+  { d: "m90 102 0.6 2 0.4 1-1-1", thin: false },
+  { d: "m176.4 68 2.6-1 0.6-0.3-0.6 0.3v6l-0.4 2 1-0.4h1.4l-2 0.4h-0.6l0.6-1v-3", thin: false },
+  { d: "m174 68h-1-1 1v3l-0.4 4 2.4 0.4-1 0.2v-0.2l-1-0.4-1 0.4 2 0.2", thin: false },
+  { d: "m171.4 68v0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3 0.3-0.3", thin: false },
+  { d: "m97 83 2 1h2l-4.4 2.7 3.4-0.7 2-2h2l2.6 3v0.7l-0.6-0.7", thin: false },
+  { d: "m26 69.6-6 2.4-4 1-1 0.7 1 0.3-1 2-3 4-0.3 1h0.3l1-1v-1l2-2", thin: false },
+  { d: "m25 72h-1l-2 1-1 2-3 1-1.4 3-0.2 3", thin: false },
+  { d: "m24.6 73-0.6 1-1-1-2 3h1l-1 3 0.4 1.3 1.6-3.3 5-3 1 1-2 1-2 2-2 3-2 4-1 4v3l-2 7.6 0.6 5h0.4-1.4l0.4-0.6", thin: false },
+  { d: "m21 85-3 1.6-4 1.4-3-1-4-3h-1.4l-1.6 1.6-1 1.4-1 2v4l0.6-1", thin: false },
+  { d: "m7 85h-1l-1 2 0.6 5 1.4 11-0.4 1.6h1.4l0.6-0.6h-0.6l-0.4-4-1.6-10v-2l2-3", thin: false },
+  { d: "m10 91-2 3-0.4 2 2.4 2 2 2 0.6 2-1 2 1 0.6h0.4", thin: false },
+  { d: "m17 92-2-1.6-3-0.4-1.4 0.6", thin: false },
+  { d: "m21 94.4 3.6 1.2v1l-1.6 2.4-1.4 4 1.4 0.6 0.6-1.6h-0.6", thin: false },
+  { d: "m25 96-1 1", thin: false },
+  { d: "m16 83-2 3.6", thin: false },
+  { d: "m19.6 84-1.6-2-3 1-2 2-0.4 2 1.4-0.4", thin: false },
+  { d: "m20 76h-2", thin: false },
+  { d: "m16.4 77-2.4 2", thin: false },
+  { d: "m37.6 76.4-0.6-0.4-1 0.4-1 1.6v1h2l0.6-2.6-0.6 1.6-0.4 1 2 1 1.4 2 1.6 4 0.4 0.6 0.6-2.6 0.4-2 2.6-2 0.4-1.4 2-2 2-0.6 2-2 1-1.6 1-0.4 0.6 0.6 1.4 3.4 1 2v2l-2 5h0.6", thin: false },
+  { d: "m48 77 1 3 2 5v1-1", thin: false },
+  { d: "m41 78 2 4 1 3 2 2", thin: false },
+  { d: "m32 78.6-1 0.4-2 3-1 4-0.4-1-0.6-2 0.6-3-0.6-2.4 1 1.4-1 4", thin: false },
+  { d: "m32 78.6 5 1.4-3 4-2 4-2.4 2-1 2v3l1 4 0.4 4.6 1.6 0.4h0.4l-0.4-1-1.6-1", thin: false },
+  { d: "m30 96h4l2.6 0.6 0.4-0.6-3-5-1.4-4-1-4-0.6-3.4 1 1.4 0.6 4 1.4 3 2.6 7", thin: false },
+  { d: "m39 81-3 3", thin: false },
+  { d: "m47 88-3 2-3 3-1 1.4 1 0.2v-0.6l6-6 1-0.4 4-0.6h5 1l2-2 1-2 2-3 1-3 0.4-1 0.2 1-1.6 2.6 2 1.4 0.6 1-0.6 1 1 1-1 0.6-2-1.6-2 3-1 4 1 4 3 8-0.4 2 1 0.6v-0.6h-0.6l-2-2-1-2-5 1-7-1-4-1-2-2 2-3 2-5 2-1 7 0.6h3", thin: false },
+  { d: "m43 96-1 1 1 11-0.4 2.6 1.4 0.4v-1l1-1-1-1v-8-3l3 2v4l1 3 1.6 2-0.6 1-1 1.6 2-0.6 0.6-1-1.6-2", thin: false },
+  { d: "m49 101 7 1h3l4 4 1 4v2l-3 1v0.6h1l2.4-1", thin: false },
+  { d: "m62.6 106-2.6 3-2 3-1 1v0.6l1-0.6", thin: false },
+  { d: "m56 75 2 1 1 2 2 5", thin: false },
+  { d: "m61 76v3", thin: false },
+  { d: "m110 122h0.6l0.4-2 0.6 2h1l0.4-1v1", thin: false },
 ];
 
 // Word entries for brain network
@@ -454,15 +635,15 @@ const SCENES: SceneDef[] = [
   },
   {
     phaseId: "14",
-    navLabel: "🖌 BRUSH",
-    headline: "THE BRUSH",
-    body: "Flow becomes gesture.",
-    formula: "brushStroke / flowing ink",
-    status: "wave memory",
+    navLabel: "🪨 CAVE",
+    headline: "THE CAVE",
+    body: "Ochre strokes on stone — the first marks of human consciousness.",
+    formula: "cavePainting / 166 strokes",
+    status: "primordial mark",
     frequency: "1666.66 Hz",
     amplitude: "1.000",
     coordinates: "14 00 00.00 N / 14 00 00.00 E",
-    origin: "the first motion",
+    origin: "the first mark",
     duration: 6,
   },
   {
@@ -491,9 +672,22 @@ const SCENES: SceneDef[] = [
     origin: "interlocking loops",
     duration: 8,
   },
+  {
+    phaseId: "17",
+    navLabel: "✒ SCRIBE",
+    headline: "THE SCRIBE",
+    body: "Each word a bridge between minds separated by centuries. The page remembers what the voice forgets.",
+    formula: "scribeFlow / manuscript writing",
+    status: "cultural synthesis",
+    frequency: "2666.66 Hz",
+    amplitude: "1.000",
+    coordinates: "18 00 00.00 N / 18 00 00.00 E",
+    origin: "the written word",
+    duration: 8,
+  },
 ];
 
-const TOTAL_SCENES = 4; // Scenes 0-3 live (full 17 scenes available)
+const TOTAL_SCENES = SCENES.length; // All 16 scenes active (local dev)
 
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3);
@@ -772,6 +966,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
   const prevSceneRef = useRef(0);
   const settledRef = useRef(false);
   const settledTimeRef = useRef(0);
+  const penAngleRef = useRef(-Math.PI / 4); // Smoothed pen rotation for scene 17 (SCRIBE)
+  const sceneEntryProgressRef = useRef(0); // Progress at scene transition entry, for flash-less reveal
   const paramsRef = useRef<AllSceneParams>(JSON.parse(JSON.stringify(DEFAULT_PARAMS)));
   const lastFrameRef = useRef(performance.now());
   const langMgrRef = useRef(new LanguageManager(3)); // 3 seconds per language
@@ -830,12 +1026,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (e.key === "b") {
         if (mode === "scroll") {
           const nextScene = (sceneRef.current + 1) % TOTAL_SCENES;
-          const maxScroll = Math.max(
-            1,
-            document.body.scrollHeight - window.innerHeight,
-          );
-          const targetScroll = (nextScene / (TOTAL_SCENES - 1)) * maxScroll;
-          window.scrollTo({ top: targetScroll, behavior: "smooth" });
+          const targetScroll = (nextScene / (TOTAL_SCENES - 1)) * lenis.limit;
+          lenis.scrollTo(targetScroll);
         } else {
           const nextScene = (sceneRef.current + 1) % TOTAL_SCENES;
           prevSceneRef.current = sceneRef.current;
@@ -918,12 +1110,41 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       return segments;
     });
 
-    const handleScroll = () => {
-      const maxScroll = Math.max(
-        1,
-        document.body.scrollHeight - window.innerHeight,
-      );
-      const scrollProgress = clamp01(window.scrollY / maxScroll);
+    // ─── Cave painting SVG path cache → LineSegment[] + stroke metadata ───
+    const caveStrokeSegments: LineSegment[][] = CAVE_PATHS.map(cp => {
+      const el = document.createElementNS(svgNS, 'path');
+      el.setAttribute('d', cp.d);
+      brainSvgContainer.appendChild(el);
+      const totalLen = el.getTotalLength();
+      const segs: LineSegment[] = [];
+      if (totalLen < 0.5) return segs; // Skip degenerate strokes
+      const steps = Math.max(4, Math.floor(totalLen / 3));
+      for (let s = 0; s < steps; s++) {
+        const t1 = (s / steps) * totalLen;
+        const t2 = ((s + 1) / steps) * totalLen;
+        const p1 = el.getPointAtLength(t1);
+        const p2 = el.getPointAtLength(t2);
+        segs.push({
+          x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y,
+          angle: Math.atan2(p2.y - p1.y, p2.x - p1.x),
+          length: Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2),
+          depth: 0,
+        });
+      }
+      return segs;
+    });
+
+    // ─── Lenis smooth scroll ───
+    const lenis = new Lenis({
+      smoothWheel: true,
+      lerp: 0.08,
+      wheelMultiplier: 1,
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+    });
+
+    lenis.on('scroll', () => {
+      const scrollProgress = clamp01(lenis.progress);
       const nextScene = scrollToScene(scrollProgress);
 
       if (nextScene !== sceneRef.current) {
@@ -949,7 +1170,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
           settledRef.current = true;
         }, 1000);
       }
-    };
+    });
 
     const render = () => {
       // Use actual wall-clock delta time so frame drops don't slow animations
@@ -972,8 +1193,9 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       const formulaTexts = FORMULA_TEXTS[lang];
       const sceneDef = SCENES[currentScene];
       const isScrollMode = mode === "scroll";
+      // Exclude scene 17 (SCRIBE) from settled auto-advance — writing is purely scroll-driven
       const weatherSettled =
-        isScrollMode && settledRef.current && currentScene >= 5;
+        isScrollMode && settledRef.current && currentScene >= 5 && currentScene !== 17;
 
       if (isScrollMode) {
         if (weatherSettled && settledTimeRef.current < sceneDef.duration) {
@@ -1218,7 +1440,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 5) {
         // FERN — fractal fern with wind sway
         ctx.save();
-        const easedFloraP = easeOutCubic(clamp01(progress));
+        const easedFloraP = clamp01(progress);
 
         ctx.translate(cx, cy + 120 * scale);
         const fernP = paramsRef.current.fern;
@@ -1240,7 +1462,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 6) {
         // TREE — L-system tree with wind sway
         ctx.save();
-        const easedFloraP = easeOutCubic(clamp01(progress));
+        const easedFloraP = clamp01(progress);
 
         ctx.translate(cx, cy + 160 * scale);
         const lsysP = paramsRef.current.lsystem;
@@ -1262,7 +1484,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 7) {
         // CRYSTAL — dendritic crystal with rotation
         ctx.save();
-        const easedFloraP = easeOutCubic(clamp01(progress));
+        const easedFloraP = clamp01(progress);
 
         ctx.translate(cx, cy);
         const crystP = paramsRef.current.crystal;
@@ -1287,7 +1509,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 8) {
         // BUTTERFLY — chaotic attractor
         ctx.save();
-        const easedFaunaP = easeOutCubic(clamp01(progress));
+        const easedFaunaP = clamp01(progress);
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
@@ -1303,7 +1525,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 9) {
         // WAVE — symmetric wave flocking
         ctx.save();
-        const easedFaunaP = easeOutCubic(clamp01(progress));
+        const easedFaunaP = clamp01(progress);
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
@@ -1319,7 +1541,7 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 10) {
         // CREATURE — slimy creature emergent
         ctx.save();
-        const easedFaunaP = easeOutCubic(clamp01(progress));
+        const easedFaunaP = clamp01(progress);
 
         ctx.translate(cx, cy);
         ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
@@ -1707,74 +1929,68 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         }
       }
 
-      // === THE BRUSH (scene 14) ===
+      // === THE CAVE (scene 14) — Prehistoric cave painting revealed stroke by stroke ===
       if (renderScene === 14) {
+        const caveP = clamp01(progress);
+        const caveSc = Math.min(w, h) / 200;
+
         ctx.save();
         ctx.translate(cx, cy);
+        ctx.scale(caveSc * 0.90, caveSc * 0.90);
+        ctx.translate(-100, -64); // Center 200×128 viewBox
 
-        // Calculate a base scale factor that guarantees responsive, screen-fitting paths
-        // regardless of resolution (targeting a 1000x1000 virtual canvas)
-        const baseScale = Math.max(w, h) / 1020;
-        ctx.scale(baseScale, baseScale);
+        // Collect all segments from visible strokes for pretext text
+        const visibleStrokeCount = Math.floor(caveStrokeSegments.length * clamp01(caveP));
+        const allCaveSegs: LineSegment[] = [];
 
-        // Physical vertical translation based on scroll progress to move the pattern from top to bottom
-        const verticalScrollTranslate = (progress - 0.5) * 450;
-        ctx.translate(0, verticalScrollTranslate);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-        const result = brushStroke("", {}, t);
-        if (result.type === "segments") {
-          ctx.lineCap = "round";
-          ctx.lineJoin = "round";
+        // Draw visible strokes — thin & faint
+        for (let si = 0; si < Math.min(visibleStrokeCount, caveStrokeSegments.length); si++) {
+          const segs = caveStrokeSegments[si];
+          if (!segs || segs.length === 0) continue;
 
-          // Reveal segments from top to bottom based on scroll progress
-          const yThreshold = -520 + 1040 * progress;
+          const isThin = CAVE_PATHS[si].thin;
+          ctx.strokeStyle = "#8A4836";
+          ctx.lineWidth = isThin ? 0.2 : 0.4;
+          ctx.globalAlpha = 0.50;
 
-          // Distinct font sizes for the 8 tracks to create organic varying widths
-          const laneFontSizes = [7.0, 15.0, 5.5, 18.0, 11.0, 4.5, 13.0, 8.5];
+          ctx.beginPath();
+          for (const seg of segs) {
+            ctx.moveTo(seg.x1, seg.y1);
+            ctx.lineTo(seg.x2, seg.y2);
+          }
+          ctx.stroke();
 
+          allCaveSegs.push(...segs);
+        }
+
+        // Pretext text flowing along visible strokes
+        if (allCaveSegs.length > 8) {
+          const caveFs = 2.0;
+          const cavePlacements = layoutTextOnSegments(
+            formulaTexts.brushStroke, allCaveSegs, caveFs,
+            currentFontFamily, { preserveOrder: true },
+          );
+          const langFont = getFontForLanguage(lang, caveFs);
           ctx.textAlign = "left";
           ctx.textBaseline = "top";
           ctx.direction = textDirection(lang);
-
-          for (let j = 0; j < 8; j++) {
-            const laneFs = laneFontSizes[j];
-            const dMin = j * 0.065;
-            const dMax = (j + 1) * 0.065;
-            const trackSegs = result.segments.filter(
-              s => s.depth >= dMin && s.depth < dMax && s.y2 <= yThreshold
-            );
-
-            if (trackSegs.length === 0) continue;
-
-            const placements = layoutTextOnSegments(
-              formulaTexts.brushStroke,
-              trackSegs,
-              laneFs,
-              currentFontFamily,
-              { preserveOrder: true }
-            );
-
-            const langFont = getFontForLanguage(lang, laneFs);
-            ctx.font = langFont;
-
-            for (const p of placements) {
-              if (!p.text.trim()) continue;
-              ctx.save();
-              ctx.translate(p.x, p.y);
-              ctx.rotate(p.rotation);
-              ctx.scale(p.scale * 0.95, p.scale * 0.95);
-              ctx.font = langFont;
-
-              ctx.globalAlpha = 0.55 + p.opacity * 0.45;
-              ctx.fillStyle = tone.isVoid
-                ? "rgb(46, 252, 252)"  // glowing turquoise for dark void theme
-                : "rgb(10, 92, 166)";  // deep Japanese indigo blue for light theme
-
-              ctx.fillText(p.text, 0, 0);
-              ctx.restore();
-            }
+          ctx.font = langFont;
+          for (const p of cavePlacements) {
+            if (!p.text.trim()) continue;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.scale(p.scale, p.scale);
+            ctx.globalAlpha = 0.45 + p.opacity * 0.3;
+            ctx.fillStyle = "#d4a574";
+            ctx.fillText(p.text, 0, 0);
+            ctx.restore();
           }
         }
+
         ctx.restore();
       }
 
@@ -2360,6 +2576,246 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore();
       }
 
+      // === THE SCRIBE (scene 17) — Pretext-style handwriting with 3D pen ===
+      if (renderScene === 17) {
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        const scribeText = formulaTexts.scribeFlow;
+        const scribeScale = Math.min(w, h) / 1200;
+        ctx.scale(scribeScale, scribeScale);
+
+        // Scroll-driven writing progress
+        let scribeProgress = clamp01(progress);
+        // NaN safety
+        if (scribeProgress !== scribeProgress) scribeProgress = 0;
+
+        // Reset pen angle on scene entry
+        if (scribeProgress < 0.01) penAngleRef.current = -Math.PI / 4;
+
+        // ── 3D Paper Perspective ──
+        const pageW = 340;
+        const pageH = 460;
+        const marginX = 35;
+        const marginY = 50;
+        const charWidth = 18;
+        const charHeight = 24;
+        const charsPerLine = 16;
+        const lineSpacing = 26;
+
+        // Apply perspective transform
+        ctx.save();
+        ctx.transform(1, 0, 0.06, 0.96, 0, 25);
+
+        // ── Paper Background ──
+        const paperX = -pageW / 2;
+        const paperY = -pageH / 2;
+
+        // Paper shadow
+        ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+        ctx.fillRect(paperX + 10, paperY + 10, pageW, pageH);
+
+        // Paper body
+        ctx.fillStyle = tone.isVoid
+          ? "rgba(35, 32, 28, 0.9)"
+          : "rgba(252, 248, 242, 0.97)";
+        ctx.fillRect(paperX, paperY, pageW, pageH);
+
+        // Paper texture lines
+        ctx.strokeStyle = tone.isVoid
+          ? "rgba(55, 50, 45, 0.08)"
+          : "rgba(210, 200, 185, 0.12)";
+        ctx.lineWidth = 0.3;
+        for (let i = 0; i < 25; i++) {
+          const ly = paperY + marginY + i * lineSpacing;
+          ctx.beginPath();
+          ctx.moveTo(paperX + marginX - 5, ly);
+          ctx.lineTo(paperX + pageW - marginX + 5, ly);
+          ctx.stroke();
+        }
+
+        // ── Get formula segments ──
+        const result = scribeFlow(scribeText, {
+          pageWidth: pageW,
+          pageHeight: pageH,
+          marginX,
+          marginY,
+          charWidth,
+          charHeight,
+          charsPerLine,
+          lineSpacing,
+          progress: scribeProgress,
+        }, t);
+
+        const inkColor = tone.isVoid
+          ? "rgba(170, 155, 135, 0.8)"
+          : "rgba(40, 35, 30, 0.85)";
+
+        if (result.type === "segments") {
+          // Separate visual-only segments (borders) from handwriting stroke segments
+          const borderSegs: LineSegment[] = [];
+          const strokeSegs: LineSegment[] = [];
+
+          for (const s of result.segments) {
+            if (s.visualOnly) {
+              borderSegs.push(s);
+            } else {
+              strokeSegs.push(s);
+            }
+          }
+
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+
+          // ── Draw border/header/footer lines (visual only) ──
+          ctx.lineWidth = 0.8;
+          ctx.strokeStyle = tone.isVoid
+            ? "rgba(80, 70, 55, 0.2)"
+            : "rgba(40, 35, 30, 0.2)";
+          for (const s of borderSegs) {
+            ctx.beginPath();
+            ctx.moveTo(s.x1, s.y1);
+            ctx.lineTo(s.x2, s.y2);
+            ctx.stroke();
+          }
+
+          // ── Draw handwriting strokes (the actual letter shapes) ──
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = inkColor;
+
+          for (const s of strokeSegs) {
+            ctx.beginPath();
+            ctx.moveTo(s.x1, s.y1);
+            ctx.lineTo(s.x2, s.y2);
+            ctx.stroke();
+          }
+
+          // ── Layout pretext text along paper outline ──
+          const placements = layoutTextOnSegments(
+            scribeText, borderSegs, 9, currentFontFamily,
+            { preserveOrder: true },
+          );
+
+          // ── Render pretext text ──
+          const langFont = getFontForLanguage(lang, 9);
+          ctx.textAlign = "left";
+          ctx.textBaseline = "top";
+          ctx.direction = textDirection(lang);
+          ctx.font = langFont;
+
+          for (const p of placements) {
+            if (!p.text.trim()) continue;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rotation);
+            ctx.scale(p.scale, p.scale);
+            ctx.globalAlpha = 0.5 + p.opacity * 0.4;
+            ctx.fillStyle = tone.isVoid
+              ? "rgb(150, 140, 120)"
+              : "rgb(60, 55, 50)";
+            ctx.fillText(p.text, 0, 0);
+            ctx.restore();
+          }
+        }
+
+        // ── Calculate pen position from progress ──
+        const text = scribeText.toUpperCase();
+        const writingState = getWritingState(text, scribeProgress);
+        
+        const currentCharIdx = writingState.charIndex;
+        const currentLine = Math.floor(currentCharIdx / charsPerLine);
+        const currentCharInLine = currentCharIdx % charsPerLine;
+        
+        let penX = paperX + marginX + currentCharInLine * charWidth;
+        let penY = paperY + marginY + currentLine * lineSpacing;
+        
+        // Get stroke endpoint for pen position
+        const currentStrokes = getLetterStrokes(text[currentCharIdx] || ' ');
+        if (currentStrokes.length > 0 && writingState.strokeIndex < currentStrokes.length) {
+          const currentStroke = currentStrokes[writingState.strokeIndex];
+          const pt = getStrokePoint(currentStroke, writingState.strokeProgress);
+          penX += pt.x * charWidth * 0.8;
+          penY += pt.y * charHeight * 0.8;
+        }
+
+        // ── 3D Pen ──
+        if (scribeProgress > 0.005) {
+          ctx.save();
+          ctx.translate(penX, penY);
+          
+          // Smooth pen rotation — use overall stroke direction, not per-point tangent
+          let targetAngle = -Math.PI / 4;
+          if (currentStrokes.length > 0 && writingState.strokeIndex < currentStrokes.length) {
+            const stroke = currentStrokes[writingState.strokeIndex];
+            // Compute stable angle from stroke start→end (not live tangent which jumps per-segment)
+            const startPt = stroke[0];
+            const endPt = stroke[stroke.length - 1];
+            targetAngle = Math.atan2(endPt.y - startPt.y, endPt.x - startPt.x) - Math.PI / 2;
+          }
+          // Heavy smoothing to avoid visible whipping between strokes/letters
+          let diff = targetAngle - penAngleRef.current;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          penAngleRef.current += diff * 0.04;
+          ctx.rotate(penAngleRef.current);
+
+          // Pen shadow
+          ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+          ctx.beginPath();
+          ctx.ellipse(4, 4, 14, 5, 0.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pen body
+          const bodyGrad = ctx.createLinearGradient(-8, -100, 8, 0);
+          bodyGrad.addColorStop(0, tone.isVoid ? "rgba(80, 70, 55, 0.95)" : "rgba(75, 55, 35, 0.95)");
+          bodyGrad.addColorStop(0.5, tone.isVoid ? "rgba(110, 95, 75, 0.95)" : "rgba(100, 75, 50, 0.95)");
+          bodyGrad.addColorStop(1, tone.isVoid ? "rgba(70, 60, 45, 0.95)" : "rgba(60, 45, 30, 0.95)");
+          ctx.fillStyle = bodyGrad;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(-10, -30, -7, -100);
+          ctx.lineTo(7, -100);
+          ctx.quadraticCurveTo(10, -30, 0, 0);
+          ctx.closePath();
+          ctx.fill();
+
+          // Pen highlight
+          ctx.fillStyle = tone.isVoid ? "rgba(150, 135, 115, 0.3)" : "rgba(140, 110, 80, 0.25)";
+          ctx.beginPath();
+          ctx.moveTo(-2, -15);
+          ctx.quadraticCurveTo(-6, -50, -4, -85);
+          ctx.lineTo(0, -85);
+          ctx.quadraticCurveTo(-2, -50, 2, -15);
+          ctx.closePath();
+          ctx.fill();
+
+          // Metal nib
+          const nibGrad = ctx.createLinearGradient(-5, 0, 5, 0);
+          nibGrad.addColorStop(0, "rgba(160, 150, 135, 0.9)");
+          nibGrad.addColorStop(0.5, "rgba(200, 190, 175, 0.95)");
+          nibGrad.addColorStop(1, "rgba(150, 140, 125, 0.9)");
+          ctx.fillStyle = nibGrad;
+          ctx.beginPath();
+          ctx.moveTo(0, 3);
+          ctx.lineTo(-5, -12);
+          ctx.lineTo(0, -8);
+          ctx.lineTo(5, -12);
+          ctx.closePath();
+          ctx.fill();
+
+          // Ink drop
+          ctx.fillStyle = inkColor;
+          ctx.beginPath();
+          ctx.arc(0, 4, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        ctx.restore(); // Restore perspective
+        ctx.restore(); // Restore main
+      }
+
       // Restore our global transition scale wrapper
       ctx.restore();
 
@@ -2380,22 +2836,23 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       // Ornamental border (right + bottom, L-shaped) — always English
       renderBorder(ctx, w, h, tone, isAlt, ORNAMENTAL_TEXT['en']);
 
+      // Update Lenis smooth scroll animation
+      lenis.raf(now);
+
       animationId = requestAnimationFrame(render);
     };
 
     if (mode === "scroll") {
       document.body.classList.add("act1-scroll-mode");
-      window.addEventListener("scroll", handleScroll, { passive: true });
-      handleScroll();
     }
 
     render();
 
     return () => {
       cancelAnimationFrame(animationId);
+      lenis.destroy();
       brainSvgContainer.remove();
       document.body.classList.remove("act1-scroll-mode");
-      window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("keydown", handleKey);
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);

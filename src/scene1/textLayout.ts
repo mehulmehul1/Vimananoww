@@ -78,7 +78,7 @@ export function layoutTextOnSegments(
     const depthScale = Math.max(0.2, 1.0 - seg.depth * 0.12);
 
     // For complex scripts, use wider minimum to avoid broken grapheme clusters
-    const minLen = complex ? fontSize * depthScale * 1.2 : fontSize * depthScale * 0.5;
+    const minLen = complex ? fontSize * depthScale * 0.6 : fontSize * depthScale * 0.15;
     if (seg.length < minLen) continue;
 
     const line = layoutNextLine(prepared, cursor, seg.length * 0.9 / depthScale);

@@ -25,6 +25,8 @@ import { sierpinskiCarpet } from './geometric/sierpinskiCarpet';
 import { fractalSnowflake } from './geometric/fractalSnowflake';
 import { brushStroke } from './organic/brushStroke';
 import { knittingStitch } from './organic/knittingStitch';
+import { letterGrid } from './organic/letterGrid';
+import { scribeFlow } from './organic/scribeFlow';
 
 export * from './types';
 export * from './helpers';
@@ -60,6 +62,8 @@ export {
   fractalSnowflake,
   brushStroke,
   knittingStitch,
+  letterGrid,
+  scribeFlow,
 };
 
 export const TEMPLATES: Template[] = [
@@ -168,6 +172,19 @@ export const TEMPLATES: Template[] = [
     defaultParams: { stitchWidth: 24, stitchHeight: 20, rows: 12, stitchesPerRow: 16, needleLength: 160, cableFrequency: 0, cableOffset: 3, yarnSlack: 0.2, tension: 0.85, progress: 1.0 },
     formula: knittingStitch,
     sortSegments: false,
+  },
+  {
+    name: 'Letter Grid',
+    description: 'Text flows across letterpress blocks with mechanical printing',
+    defaultParams: { gridCols: 12, gridRows: 6, blockWidth: 28, blockHeight: 32, lineSpacing: 18 },
+    formula: letterGrid,
+    sortSegments: false,
+  },
+  {
+    name: 'Scribe Flow',
+    description: 'Text flows along manuscript lines like a quill writing on paper',
+    defaultParams: { pageWidth: 320, pageHeight: 440, lineCount: 18, marginX: 30, marginY: 40 },
+    formula: scribeFlow,
   },
 ];
 
