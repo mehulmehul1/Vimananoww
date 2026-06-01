@@ -182,8 +182,17 @@ export const SCENE_KNITTING: Record<Language, SceneTexts> = {
   ta: { headline: 'நெசவு', body: 'நூல் துணியாகிறது. ஒவ்வொரு லூப்பும் முந்தையதை நினைவுகொள்கிறது, ஒவ்வொரு தைப்பும் அடுத்ததுக்கு வாக்குறுதி.', navLabel: '🧶 நெசவு' },
 };
 
+/** Scene 21: VIMANA — Fluid stream around a sphere */
+export const SCENE_VIMANA: Record<Language, SceneTexts> = {
+  en: { headline: 'VIMĀNA', body: 'The vessel. A sphere suspended in the flow of becoming. Streams of consciousness part and converge around its form — the soul navigating the currents of existence.', navLabel: '🌀 VIMĀNA' },
+  hi: { headline: 'विमान', body: 'पात्र। एक गोला बनने के प्रवाह में निलंबित। चेतना की धाराएँ इसके रूप के चारों ओर विभाजित और अभिसरित होती हैं — अस्तित्व की धाराओं में आत्मा का संचरण।', navLabel: '🌀 विमान' },
+  bn: { headline: 'বিমান', body: 'পাত্র। একটি গোলক হওয়ার স্রোতে স্থগিত। চেতনার স্রোত তার রূপের চারপাশে বিভক্ত এবং অভিসরিত হয় — অস্তিত্বের স্রোতে আত্মার বিচরণ।', navLabel: '🌀 বিমান' },
+  ur: { headline: 'وِمان', body: 'ظرف۔ ایک کرہ وجود کے بہاؤ میں معلق۔ شعور کی دھاریں اس کے گرد تقسیم اور ہمگرا ہوتی ہیں — وجود کے دھاروں میں روح کا سفر۔', navLabel: '🌀 وِمان' },
+  ta: { headline: 'விமானம்', body: 'கலன். ஒரு கோளம் ஆவதின் ஓட்டத்தில் இடைநிறுத்தப்பட்டுள்ளது. உணர்வின் நீரோடைகள் அதன் வடிவத்தைச் சுற்றிப் பிரிந்து ஒருங்குகின்றன — இருப்பின் நீரோட்டங்களில் ஆன்மாவின் பயணம்.', navLabel: '🌀 விமானம்' },
+};
+
 /** All multilingual scene objects in order */
-const ALL_SCENES = [SCENE_VOID, SCENE_HUM, SCENE_WORD, SCENE_FIELD, SCENE_BLUEPRINT, SCENE_FERN, SCENE_TREE, SCENE_CRYSTAL, SCENE_BUTTERFLY, SCENE_WAVE, SCENE_CREATURE, SCENE_NETWORK, SCENE_EMERGENCE, SCENE_CONVERGENCE, SCENE_CAVE, SCENE_CHISEL, SCENE_KNITTING];
+const ALL_SCENES = [SCENE_VOID, SCENE_HUM, SCENE_WORD, SCENE_FIELD, SCENE_BLUEPRINT, SCENE_FERN, SCENE_TREE, SCENE_CRYSTAL, SCENE_BUTTERFLY, SCENE_WAVE, SCENE_CREATURE, SCENE_NETWORK, SCENE_EMERGENCE, SCENE_CONVERGENCE, SCENE_CAVE, SCENE_CHISEL, SCENE_KNITTING, SCENE_VIMANA];
 
 /** All scene texts indexed by scene number (12 scenes) */
 export const SCENE_TEXTS: Record<Language, SceneTexts[]> = {
@@ -253,6 +262,12 @@ export const FORMULA_TEXTS: Record<Language, {
   letterGrid: string;
   /** Scribe Flow / Manuscript */
   scribeFlow: string;
+  /** Root Circuit — Technology Grown */
+  rootCircuit: string;
+  /** Circuit Board — Wired Technology */
+  circuitBoard: string;
+  /** Fluid Stream — Potential flow around a sphere */
+  fluidStream: string;
 }> = {
   en: {
     humCircle: 'VIMANA',
@@ -282,6 +297,9 @@ export const FORMULA_TEXTS: Record<Language, {
     knitting: 'WOVEN KNITTED LOOPED STITCHED THREAD YARN FABRIC TEXTURE PATTERN CABLE RIB INTERLOCK CROSS PURL KNIT WARP WEFT TAPESTRY LOOM SHUTTLE',
     letterGrid: 'LETTERPRESS INK PRESS BLOCK TYPE FACE GLYPH CHARACTER WORD PAGE BOOK KNOWLEDGE PRINT PRESS MACHINE',
     scribeFlow: 'QUILL INK PEN MANUSCRIPT SCRIPT WORD LINE PAGE BOOK KNOWLEDGE WRITING LETTER TEXT FLOWING',
+    rootCircuit: 'ROOT BRANCH CIRCUIT GRID NETWORK PULSE SIGNAL CRYSTALLINE GROWN NOT BUILT TECHNOLOGY ASCENSION',
+    circuitBoard: 'CIRCUIT BOARD TRACE SOLDER RESISTOR CAPACITOR DIODE NODE CONDUCTOR SIGNAL PATH FLOW WIRED TECHNOLOGY WIRING',
+    fluidStream: 'FLUID STREAM FLOW AROUND SPHERE POTENTIAL DOUBLET STREAMLINE LAMINAR TURBULENT CURVE PART DIVERT CONVERGE',
   },
   hi: {
     humCircle: 'विमान',
@@ -311,6 +329,9 @@ export const FORMULA_TEXTS: Record<Language, {
     knitting: 'बुना हुआ बुनाई लूप वाला टाँका वाला धागा यार्न कपड़ा बनावट पैटर्न केबल रिब अंतर्ग्रथन',
     letterGrid: 'लेटरप्रेस स्याही दबाव ब्लॉक टाइप चेहरा ग्लिफ अक्षर शब्द पृष्ठ पुस्तक ज्ञान मुद्रण',
     scribeFlow: 'कलम स्याही पेन पांडुलिपि लिपि शब्द पंक्ति पृष्ठ पुस्तक ज्ञान लेखन पत्र प्रवाह',
+    rootCircuit: 'जड़ शाखा परिपथ ग्रिड नेटवर्क स्पंदन संकेत क्रिस्टलीय उगाया निर्मित नहीं प्रौद्योगिकी आरोहण',
+    circuitBoard: 'सर्किट बोर्ड पथ ट्रेस सोल्डर प्रतिरोधक संधारित्र डायोड नोड चालक संकेत प्रवाह वायर्ड तकनीक तार',
+    fluidStream: 'द्रव प्रवाह गोले के चारों ओर संभावित द्विक धारा रेखा लैमिनर अशांत वक्र विभाजित अभिसरण',
   },
   bn: {
     humCircle: 'বিমান',
@@ -340,6 +361,9 @@ export const FORMULA_TEXTS: Record<Language, {
     knitting: 'বোনা বোনাই লুপ সেলাই সুতো কাপড় বনাম প্যাটার্ন কেবল রিব অন্তর্গত',
     letterGrid: 'লেটারপ্রেস কালি চাপ ব্লক টাইপ মুখ গ্লিফ অক্ষর শব্দ পৃষ্ঠ বই জ্ঞান মুদ্রণ',
     scribeFlow: 'কলম কালি পেন পাণ্ডুলিপি লিপি শব্দ লাইন পৃষ্ঠ বই জ্ঞান লেখা অক্ষর প্রবাহ',
+    rootCircuit: 'মূল শাখা বর্তনী গ্রিড নেটওয়ার্ক স্পন্দন সংকেত স্ফটিকীয় গজানো নির্মিত নয় প্রযুক্তি উত্থান',
+    circuitBoard: 'বর্তনী বোর্ড পথ ট্রেস সোল্ডার রোধক ধারক ডায়োড নোড পরিবাহী সংকেত প্রবাহ তারযুক্ত প্রযুক্তি',
+    fluidStream: 'তরল প্রবাহ গোলকের চারপাশে বিভব দ্বিমেরু ধারারেখা লেমিনার অশান্ত বক্র বিভক্ত অভিসারী',
   },
   ur: {
     humCircle: 'وِمان',
@@ -369,6 +393,9 @@ export const FORMULA_TEXTS: Record<Language, {
     knitting: 'بنا ہوا بنائی لوپ ٹانکا دھاگہ کپڑا بناوٹ پیٹرن کیبل ریب',
     letterGrid: 'لیٹرپریس سیاہی دباؤ بلاک ٹائپ چہرہ گلیف حرف لفظ صفحہ کتاب علم چھاپ',
     scribeFlow: 'قلم سیاہی پین خطاطی خط لفظ صفحہ کتاب علم تحریر حرف بہاؤ',
+    rootCircuit: 'جڑ شاخ سرکٹ گرڈ نیٹ ورک دھڑکن اشارہ کرسٹلائی اگایا نہیں بنایا ٹیکنالوجی عروج',
+    circuitBoard: 'سرکٹ بورڈ ٹریس سولڈر مزاحم مکثف ڈایوڈ نوڈ موصل اشارہ بہاؤ وائرڈ ٹیکنالوجی',
+    fluidStream: 'سیال بہاؤ کرہ کے گرد امکانی دوئبی دھارالکھیر لیمینر متلاطم وکر تقسیم ہمگرا',
   },
   ta: {
     humCircle: 'விமானம்',
@@ -398,6 +425,9 @@ export const FORMULA_TEXTS: Record<Language, {
     knitting: 'நெசவு பின்னல் லூப் தைப்பு நூல் துணி வடிவம் கேபிள் ரிப் இணைப்பு',
     letterGrid: 'லெட்டர்பிரஸ் மை அழுத்தம் தொகுதி எழுத்துரு கிளிஃப் எழுத்து சொல் பக்கம் புத்தகம் அறிவு அச்சு',
     scribeFlow: 'எழுத்தாணி மை பேனா கையெழுத்து எழுத்து சொல் வரி பக்கம் புத்தகம் அறிவு எழுத்து ஓட்டம்',
+    rootCircuit: 'வேர் கிளை சுற்று வலை வலையமைப்பு துடிப்பு சிக்னல் படிகம் வளர்ந்தது கட்டப்படவில்லை தொழில்நுட்பம் ஏற்றம்',
+    circuitBoard: 'சுற்று பலகை தடம் சாலிடர் மின்தடை மின்தேக்கி இருமுனையம் முனை கடத்தி சமிக்ஞை பாதை கம்பி தொழில்நுட்பம்',
+    fluidStream: 'திரவ ஓட்டம் கோளத்தைச் சுற்றி திறன் இரட்டைமுனை ஓட்டக்கோடு நேர்த்தி கொந்தளிப்பு வளைவு பிரிந்து ஒருங்கு',
   },
 };
 

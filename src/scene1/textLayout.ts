@@ -8,6 +8,8 @@ export interface LinePlacement {
   rotation: number;
   scale: number;
   opacity: number;
+  /** Which segment depth this placement belongs to */
+  segDepth: number;
 }
 
 export interface LayoutTextOptions {
@@ -104,6 +106,7 @@ export function layoutTextOnSegments(
       rotation: seg.angle,
       scale: depthScale,
       opacity: 0.6 + depthScale * 0.4,
+      segDepth: seg.depth,
     });
 
     cursor = line.end;

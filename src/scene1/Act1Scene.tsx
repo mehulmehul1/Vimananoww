@@ -31,11 +31,17 @@ import {
   brushStroke,
   scribeFlow,
   knittingStitch,
+  rootCircuit,
+  circuitBoard,
+  fluidStream,
+  traceWorldStreamlines,
+  projectWorldStreamlines,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
   wordColor,
   type LineSegment,
+  type WorldStreamlineData,
 } from "../pretext-editor/formulas";
 import {
   getLetterStrokes,
@@ -684,6 +690,32 @@ const SCENES: SceneDef[] = [
     origin: "the written word",
     duration: 8,
   },
+  {
+    phaseId: "18",
+    navLabel: "⚡ CIRCUITRY",
+    headline: "THE METAMORPHOSIS",
+    body: "A rhizome knot sends tendrils upward into a perspective grid. The grid tilts toward us, roots dissolve, and lines become traces, nodes become components — technology wired, not grown.",
+    formula: "rootCircuit → circuitBoard / metamorphosis",
+    status: "the metamorphosis",
+    frequency: "3333.33 Hz",
+    amplitude: "1.000",
+    coordinates: "18 00 00.00 N / 18 00 00.00 E",
+    origin: "grown then wired",
+    duration: 14,
+  },
+  {
+    phaseId: "21",
+    navLabel: "🌀 VIMĀNA",
+    headline: "VIMĀNA",
+    body: "The vessel. A sphere suspended in the flow of becoming. Streams of consciousness part and converge around its form — the soul navigating the currents of existence.",
+    formula: "fluidStream / potential flow",
+    status: "the vessel",
+    frequency: "3999.99 Hz",
+    amplitude: "1.000",
+    coordinates: "21 00 00.00 N / 21 00 00.00 E",
+    origin: "the sphere",
+    duration: 10,
+  },
 ];
 
 // Production (Vercel): only first 4 scenes. Local: all scenes.
@@ -975,6 +1007,26 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
   // Orbital drag state for brain scene
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0, rotX: 0.35, rotY: 0 });
+  // Orbital drag state for fluid stream scene 19
+  const fluidDragRef = useRef({ active: false, lastX: 0, lastY: 0, altKey: false });
+
+  // Scene 21 (fluidStream) cache & particles
+  interface FlowParticle {
+    streamlineId: number;
+    t: number;
+    speed: number;
+    glyph: string;
+  }
+  const fluidCacheRef = useRef<{
+    key: string;
+    segments: LineSegment[];
+    bounds: number[];
+    _cameraPos?: [number, number, number];
+    _focalLen?: number;
+    _sphereScreenR?: number;
+  } | null>(null);
+  const fluidWorldCacheRef = useRef<{ key: string; data: WorldStreamlineData } | null>(null);
+  const fluidParticlesRef = useRef<FlowParticle[]>([]);
 
   const [scene, setScene] = useState(Math.min(initialScene ?? 0, TOTAL_SCENES - 1));
   const [sceneProgress, setSceneProgress] = useState(0);
@@ -1050,26 +1102,49 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // ─── Orbital drag controls for brain scene ───
+    // ─── Orbital drag controls for brain scene + fluid stream scene ───
     const onPointerDown = (e: PointerEvent) => {
-      if (sceneRef.current !== 13) return;
-      dragRef.current.active = true;
-      dragRef.current.lastX = e.clientX;
-      dragRef.current.lastY = e.clientY;
-      canvas.setPointerCapture(e.pointerId);
+      if (sceneRef.current === 13) {
+        dragRef.current.active = true;
+        dragRef.current.lastX = e.clientX;
+        dragRef.current.lastY = e.clientY;
+        canvas.setPointerCapture(e.pointerId);
+      } else if (sceneRef.current === 19) {
+        fluidDragRef.current.active = true;
+        fluidDragRef.current.lastX = e.clientX;
+        fluidDragRef.current.lastY = e.clientY;
+        fluidDragRef.current.altKey = e.altKey;
+        canvas.setPointerCapture(e.pointerId);
+      }
     };
     const onPointerMove = (e: PointerEvent) => {
-      if (!dragRef.current.active) return;
-      const dx = e.clientX - dragRef.current.lastX;
-      const dy = e.clientY - dragRef.current.lastY;
-      dragRef.current.rotY += dx * 0.008;
-      dragRef.current.rotX += dy * 0.005;
-      dragRef.current.rotX = Math.max(-1.2, Math.min(1.2, dragRef.current.rotX));
-      dragRef.current.lastX = e.clientX;
-      dragRef.current.lastY = e.clientY;
+      if (sceneRef.current === 13 && dragRef.current.active) {
+        const dx = e.clientX - dragRef.current.lastX;
+        const dy = e.clientY - dragRef.current.lastY;
+        dragRef.current.rotY += dx * 0.008;
+        dragRef.current.rotX += dy * 0.005;
+        dragRef.current.rotX = Math.max(-1.2, Math.min(1.2, dragRef.current.rotX));
+        dragRef.current.lastX = e.clientX;
+        dragRef.current.lastY = e.clientY;
+      } else if (sceneRef.current === 19 && fluidDragRef.current.active) {
+        const dx = e.clientX - fluidDragRef.current.lastX;
+        const dy = e.clientY - fluidDragRef.current.lastY;
+        const fp = paramsRef.current.fluidStream;
+        if (fluidDragRef.current.altKey) {
+          // Alt+drag = change distance (zoom)
+          fp.cameraDistance = Math.max(50, Math.min(500, fp.cameraDistance + dy * 0.5));
+        } else {
+          // Drag = orbit around
+          fp.cameraAzimuth = Math.max(-90, Math.min(90, fp.cameraAzimuth + dx * 0.15));
+          fp.cameraElevation = Math.max(-90, Math.min(90, fp.cameraElevation + dy * 0.15));
+        }
+        fluidDragRef.current.lastX = e.clientX;
+        fluidDragRef.current.lastY = e.clientY;
+      }
     };
     const onPointerUp = (e: PointerEvent) => {
       dragRef.current.active = false;
+      fluidDragRef.current.active = false;
       canvas.releasePointerCapture(e.pointerId);
     };
     canvas.addEventListener("pointerdown", onPointerDown);
@@ -1151,11 +1226,12 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         prevSceneRef.current = sceneRef.current;
         _prevSceneElapsed =
           _sceneEntryT !== null ? timeRef.current - _sceneEntryT : 0;
-        sceneRef.current = nextScene;
-        _sceneEntryT = null;
-        sceneTimeRef.current = 0;
-        transitionRef.current = 0;
-        settledRef.current = false;
+          sceneRef.current = nextScene;
+          _sceneEntryT = null;
+          _scene18EntryProgress = null;
+          sceneTimeRef.current = 0;
+          transitionRef.current = 0;
+          settledRef.current = false;
         settledTimeRef.current = 0;
         setScene(nextScene);
       }
@@ -1440,13 +1516,16 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 5) {
         // FERN — fractal fern with wind sway
         ctx.save();
-        const easedFloraP = clamp01(progress);
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
 
         ctx.translate(cx, cy + 120 * scale);
         const fernP = paramsRef.current.fern;
         const windSway = Math.sin(t * fernP.windSpeed) * fernP.windSway;
         ctx.rotate(windSway);
-        ctx.scale(easedFloraP * fernP.textScale * scale * fernP.scale, easedFloraP * fernP.textScale * scale * fernP.scale);
+        const scaleMultiplier = easeOutCubic(fp);
+        ctx.scale(scaleMultiplier * fernP.textScale * scale * fernP.scale, scaleMultiplier * fernP.textScale * scale * fernP.scale);
 
         const result = fractalFern("FERN", {
           stemLength: fernP.stemLength, frondPairs: fernP.frondPairs,
@@ -1462,13 +1541,16 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 6) {
         // TREE — L-system tree with wind sway
         ctx.save();
-        const easedFloraP = clamp01(progress);
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
 
         ctx.translate(cx, cy + 160 * scale);
         const lsysP = paramsRef.current.lsystem;
         const windSway = Math.sin(t * lsysP.windSpeed) * lsysP.windSway;
         ctx.rotate(windSway);
-        ctx.scale(easedFloraP * lsysP.textScale * scale * lsysP.scale, easedFloraP * lsysP.textScale * scale * lsysP.scale);
+        const scaleMultiplier = easeOutCubic(fp);
+        ctx.scale(scaleMultiplier * lsysP.textScale * scale * lsysP.scale, scaleMultiplier * lsysP.textScale * scale * lsysP.scale);
 
         const result = lSystemTree("TREE", {
           angle: lsysP.angle, stepLength: lsysP.stepLength,
@@ -1484,13 +1566,15 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 7) {
         // CRYSTAL — dendritic crystal with rotation
         ctx.save();
-        const easedFloraP = clamp01(progress);
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
 
         ctx.translate(cx, cy);
         const crystP = paramsRef.current.crystal;
         ctx.rotate(t * crystP.rotationSpeed);
-        ctx.scale(easedFloraP * crystP.textScale * scale * crystP.scale, easedFloraP * crystP.textScale * scale * crystP.scale);
-
+        const scaleMultiplier = easeOutCubic(fp);
+        ctx.scale(scaleMultiplier * crystP.textScale * scale * crystP.scale, scaleMultiplier * crystP.textScale * scale * crystP.scale);
 
         const result = dendriticCrystal("CRYSTAL", {
           seedLength: crystP.seedLength, branches: crystP.branches,
@@ -1509,10 +1593,13 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 8) {
         // BUTTERFLY — chaotic attractor
         ctx.save();
-        const easedFaunaP = clamp01(progress);
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
 
         ctx.translate(cx, cy);
-        ctx.scale(easedFaunaP * 2.1 * scale, easedFaunaP * 2.1 * scale);
+        const scaleMultiplier = easeOutCubic(fp);
+        ctx.scale(scaleMultiplier * 2.1 * scale, scaleMultiplier * 2.1 * scale);
         ctx.translate(-200, -200);
         const result = butterflys("FAUNA", { count: 3 }, t * 2);
         if (result.type === "segments") {
@@ -1525,10 +1612,13 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 9) {
         // WAVE — symmetric wave flocking
         ctx.save();
-        const easedFaunaP = clamp01(progress);
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
 
         ctx.translate(cx, cy);
-        ctx.scale(easedFaunaP * 2.3 * scale, easedFaunaP * 2.3 * scale);
+        const scaleMultiplier = easeOutCubic(fp);
+        ctx.scale(scaleMultiplier * 2.3 * scale, scaleMultiplier * 2.3 * scale);
         ctx.translate(-200, -200);
         const result = symmetryWave("FAUNA", { waves: 2 }, t * 0.25);
         if (result.type === "segments") {
@@ -1541,10 +1631,13 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 10) {
         // CREATURE — slimy creature emergent
         ctx.save();
-        const easedFaunaP = clamp01(progress);
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
 
         ctx.translate(cx, cy);
-        ctx.scale(easedFaunaP * 1.8 * scale, easedFaunaP * 1.8 * scale);
+        const scaleMultiplier = easeOutCubic(fp);
+        ctx.scale(scaleMultiplier * 1.8 * scale, scaleMultiplier * 1.8 * scale);
         ctx.translate(-200, -200);
         const result = slimycreature("FAUNA", { pathCount: 5 }, t * 1.5);
         if (result.type === "segments") {
@@ -1558,12 +1651,16 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
       if (renderScene === 11) {
         const mycP = theatre.myceliumNetwork;
         ctx.save();
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.15));
+        ctx.globalAlpha = fadeIn;
+        const scaleRamp = easeOutCubic(fp);
         ctx.translate(cx, cy);
-        ctx.scale(mycP.scale, mycP.scale);
+        ctx.scale(scaleRamp * mycP.scale, scaleRamp * mycP.scale);
 
         const mycText = formulaTexts.myceliumNetwork;
         // Growth driven by scroll progress — linear for smooth scroll mapping
-        const mycProgress = clamp01(progress);
+        const mycProgress = fp;
 
         if (mycProgress > 0) {
           // Cache formula result — only regenerate on param change (sway is cheap canvas transform)
@@ -1666,10 +1763,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
               }
             }
 
-            // Nutrient pulses — batched, skip every other segment
+            // Nutrient pulses — scroll-driven, not time-based
             const pulseCount = 3;
             for (let w = 0; w < pulseCount; w++) {
-              const wavePhase = ((t * 0.4 + w / pulseCount) % 1);
+              const wavePhase = ((fp * 2 + w / pulseCount) % 1);
               const wavePos = wavePhase * hyphaeSegs.length;
               const waveSpread = 30 * scale;
 
@@ -1694,10 +1791,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             }
 
             // Mycorrhizal nodes — cheap glow (no shadowBlur)
-            if (progress > 0.3) {
-              const nodeIntensity = (progress - 0.3) / 0.7;
+            const nodeIntensity = clamp01((fp - 0.15) / 0.35);
+            if (nodeIntensity > 0) {
               for (let ni = 0; ni < 8; ni++) {
-                const phase = Math.sin(t * 1.5 + ni * 2.1) * 0.5 + 0.5;
+                const phase = Math.sin(fp * 6 + ni * 2.1) * 0.5 + 0.5;
                 if (phase < 0.4) continue;
 
                 const alpha = (phase - 0.4) / 0.6 * nodeIntensity;
@@ -1722,8 +1819,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
             }
 
             // Underground aura
-            if (progress > 0.5) {
-              const auraIntensity = (progress - 0.5) / 0.5;
+            const auraIntensity = clamp01((fp - 0.35) / 0.35);
+            if (auraIntensity > 0) {
               ctx.save();
               ctx.globalAlpha = auraIntensity * 0.1;
               const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, 300 * scale);
@@ -2908,6 +3005,383 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         ctx.restore(); // Restore main
       }
 
+      // === THE METAMORPHOSIS (scene 18) — Organic roots → flat circuit board ===
+      if (renderScene === 18) {
+        // Capture entry progress so scene always starts from 0 regardless of
+        // scroll position at the moment it becomes visible after transition
+        if (_scene18EntryProgress === null) _scene18EntryProgress = progress;
+        const localProgress = clamp01(
+          (progress - _scene18EntryProgress) / (1 - _scene18EntryProgress),
+        );
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        const rootScale = Math.min(w, h) / 700;
+        ctx.scale(rootScale * (1 + localProgress * 0.3), rootScale * (1 + localProgress * 0.3));
+
+        // ── Phase timing ────────────────────────────────────────────────
+        // Phase 1 (0–35%):   rootCircuit grows (knot → tendrils → grid)
+        // Phase 2 (35–80%):  rootCircuit retracts, tilt flattens, PCB grows
+        // Phase 3 (80–100%): PCB fully revealed on flat grid
+        const grow = clamp01(localProgress / 0.35);
+        const retract = clamp01((localProgress - 0.35) / 0.45);
+        const rootProg = localProgress < 0.35
+          ? easeOutCubic(grow)           // 0→1 growing
+          : easeOutCubic(1 - retract);   // 1→0 retracting
+
+        const gridTilt = theatre.rootCircuit.gridTilt;
+        const tilt = gridTilt * (1 - easeOutCubic(retract));
+        const textFade = 1 - easeOutCubic(retract); // grid text fades with tilt
+        const circuitProg = clamp01((localProgress - 0.35) / 0.50); // PCB 35–85%
+
+        const gridRows = theatre.rootCircuit.gridRows;
+        const gridCols = theatre.rootCircuit.gridCols;
+
+        // ── rootCircuit — grows forward, then retracts backward ──
+        const rootResult = rootCircuit(formulaTexts.rootCircuit, {
+          gridRows, gridCols,
+          tendrilCount: theatre.rootCircuit.tendrilCount,
+          knotStrands: theatre.rootCircuit.knotStrands,
+          gridTilt: tilt,
+          progress: rootProg,
+        }, t);
+
+        const allSegs = rootResult.type === "segments" ? rootResult.segments : [];
+        const gridSegs = allSegs.filter(s => s.depth < 1);    // grid lines + nodes
+        const organicSegs = allSegs.filter(s => s.depth >= 1); // knot + tendrils
+
+        // ── circuitBoard — grows during retraction phase ──
+        const boardText = formulaTexts.circuitBoard;
+        const circuitResult = circuitBoard(boardText, {
+          gridRows, gridCols,
+          gridTilt: tilt,
+          componentDensity: theatre.circuitBoard.componentDensity,
+          progress: circuitProg,
+        }, t);
+
+        const circuitSegs = circuitResult.type === "segments" ? circuitResult.segments : [];
+
+        // ── Render ──
+        const strokeColor = isAlt
+          ? hexToRGBA(ALT_GREEN, 0.65)
+          : tone.isVoid
+            ? "rgba(140, 130, 115, 0.45)"
+            : "rgba(35, 30, 25, 0.35)";
+
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        // Layer 1: Grid lines (naturally dissolve as rootProg unwinds)
+        ctx.lineWidth = 1.0;
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = strokeColor;
+        ctx.beginPath();
+        for (const s of gridSegs) { ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); }
+        ctx.stroke();
+
+        // Layer 2: Organic elements (naturally retract as rootProg unwinds)
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.4;
+        ctx.strokeStyle = strokeColor;
+        ctx.beginPath();
+        for (const s of organicSegs) { ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); }
+        ctx.stroke();
+
+        // Layer 3: Circuit overlay (appears during retraction)
+        for (const s of circuitSegs) {
+          let lw: number, al: number;
+          if (s.depth === 1) { lw = 2.2; al = 0.8; }
+          else if (s.depth === 2) { lw = 1.4; al = 0.65; }
+          else { lw = 0.8; al = 0.5; }
+          ctx.lineWidth = lw;
+          ctx.globalAlpha = al;
+          ctx.strokeStyle = strokeColor;
+          ctx.beginPath();
+          ctx.moveTo(s.x1, s.y1);
+          ctx.lineTo(s.x2, s.y2);
+          ctx.stroke();
+        }
+
+        // Text on all rootCircuit segments + circuit segments (no outline)
+        const rootText = formulaTexts.rootCircuit;
+        const textFs = theatre.rootCircuit.fontSize;
+        const textSegs = [...allSegs, ...circuitSegs];
+        const placements = layoutTextOnSegments(
+          rootText, textSegs, textFs, currentFontFamily,
+          { preserveOrder: true },
+        );
+
+        const langFont = getFontForLanguage(lang, textFs);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.direction = textDirection(lang);
+        ctx.font = langFont;
+
+        for (const p of placements) {
+          if (!p.text.trim()) continue;
+          const isGridText = p.segDepth < 1;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation);
+          ctx.scale(p.scale, p.scale);
+          ctx.globalAlpha = (0.4 + p.opacity * 0.4) * (isGridText ? textFade : 1);
+          ctx.fillStyle = isAlt
+            ? ALT_GREEN
+            : tone.isVoid
+              ? "rgb(180, 165, 140)"
+              : "rgb(55, 40, 25)";
+          ctx.fillText(p.text, 0, 0);
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+
+
+      // === VIMĀNA (scene 21) — Fluid stream around a sphere ===
+      if (renderScene === 19) {
+        const streamText = formulaTexts.fluidStream;
+        const streamScale = Math.min(w, h) / 750;
+        const fp = clamp01(progress);
+        const fadeIn = easeOutCubic(clamp01(fp / 0.12));
+        const scaleRamp = 0.3 + 0.7 * easeOutCubic(fp);
+
+        // ─── Cache world-space streamlines (camera-independent — retraced only on world param change) ───────
+        const fluidP = theatre.fluidStream;
+        const worldKey = `${fluidP.streamlineCount}|${fluidP.noiseAmplitude}|${fluidP.noiseFrequency}|${fluidP.sphereRadius}|${fluidP.scale}`;
+        const fullKey = `${worldKey}|${fluidP.cameraAzimuth}|${fluidP.cameraElevation}|${fluidP.cameraDistance}`;
+
+        // World cache: retrace ONLY when world params change (rare — tune noise/sphere size)
+        if (!fluidWorldCacheRef.current || fluidWorldCacheRef.current.key !== worldKey) {
+          fluidWorldCacheRef.current = {
+            key: worldKey,
+            data: traceWorldStreamlines({
+              sphereRadius: fluidP.sphereRadius,
+              streamlineCount: fluidP.streamlineCount,
+              noiseAmplitude: fluidP.noiseAmplitude,
+              noiseFrequency: fluidP.noiseFrequency,
+              domeHeight: fluidP.domeHeight ?? 0,
+            }),
+          };
+          // Force projected cache rebuild
+          fluidCacheRef.current = null;
+        }
+
+        // Screen cache: re-project from world data when camera (or any) param changes
+        if (!fluidCacheRef.current || fluidCacheRef.current.key !== fullKey) {
+          const worldData = fluidWorldCacheRef.current!.data;
+          const result = projectWorldStreamlines(
+            worldData,
+            fluidP.cameraAzimuth * Math.PI / 180,
+            fluidP.cameraElevation * Math.PI / 180,
+            fluidP.cameraDistance,
+          );
+          fluidCacheRef.current = {
+            key: fullKey,
+            segments: result.segments,
+            bounds: result.bounds,
+            _cameraPos: result.camPos,
+            _focalLen: result.focalLen,
+            _sphereScreenR: result.sphereScreenR,
+          };
+        }
+
+        const cache = fluidCacheRef.current;
+        if (!cache || cache.segments.length === 0) { ctx.restore(); return; }
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.globalAlpha = fadeIn;
+        ctx.scale(
+          scaleRamp * streamScale * fluidP.scale,
+          scaleRamp * streamScale * fluidP.scale,
+        );
+
+        const segs = cache.segments;
+        const bounds = cache.bounds;
+        const totalStreamlines = bounds.length;
+
+        // ─── Split stream text into words for continuous word display ───
+        const streamWords = streamText.split(/\s+/).filter(w => w.length > 0);
+        const wordSource = streamWords.length > 0 ? streamWords : [streamText];
+        function randomWord(): string {
+          return wordSource[Math.floor(Math.random() * wordSource.length)];
+        }
+
+        // ─── Initialize particles lazily ───────
+        const targetCount = fluidP.particleCount || 3500;
+        let particles = fluidParticlesRef.current;
+        if (particles.length !== targetCount) {
+          particles = [];
+          for (let i = 0; i < targetCount; i++) {
+            particles.push({
+              streamlineId: totalStreamlines > 0
+                ? Math.floor(Math.random() * totalStreamlines) : 0,
+              t: Math.random(),
+              speed: 0.3 + Math.random() * 0.7,
+              glyph: randomWord(),
+            });
+          }
+          fluidParticlesRef.current = particles;
+        }
+
+        // ─── Camera data from formula ───────────────────────────────
+        const cacheC = cache as any;
+        const camPos: [number, number, number] = cacheC._cameraPos ?? [0, -80, -240];
+        const focalLen = cacheC._focalLen ?? 240;
+        const sphereScreenR = cacheC._sphereScreenR ?? fluidP.sphereRadius;
+
+        // ─── Draw thin background segments (structure) ───────
+        // Segments are already projected to 2D screen space by the formula
+        const segColor = isAlt
+          ? hexToRGBA(CYAN, 0.18)
+          : tone.isVoid
+            ? "rgba(100, 180, 220, 0.18)"
+            : "rgba(33, 199, 223, 0.20)";
+
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        for (const s of segs) {
+          // Skip occluded segments entirely
+          if ((s as any).visualOnly) continue;
+          const depth = s.depth ?? 0;
+          // Camera-depth-based scaling: farther = thinner, dimmer
+          const perspScale = 1 / (1 + depth / focalLen);
+          ctx.lineWidth = Math.max(0.15, 0.6 * perspScale);
+          ctx.globalAlpha = Math.max(0.02, 0.25 * perspScale);
+          ctx.strokeStyle = segColor;
+          ctx.beginPath();
+          ctx.moveTo(s.x1, s.y1);
+          ctx.lineTo(s.x2, s.y2);
+          ctx.stroke();
+        }
+
+        // ─── Animate particles along streamlines ───────
+        const textColor = isAlt
+          ? CYAN
+          : tone.isVoid
+            ? "rgb(160, 210, 235)"
+            : "rgb(20, 170, 200)";
+        const baseFontSize = Math.max(5, fluidP.fontSize || 8);
+        const flowSpeed = fluidP.flowSpeed || 1;
+
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = textColor;
+
+        // Ray-sphere occlusion test (3D geometric)
+        const sphereR = fluidP.sphereRadius;
+        function isOccluded(px: number, py: number, pz: number): boolean {
+          const dx = px - camPos[0], dy = py - camPos[1], dz = pz - camPos[2];
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist < 0.01) return false;
+          const nx = dx / dist, ny = dy / dist, nz = dz / dist;
+          const b = 2 * (camPos[0] * nx + camPos[1] * ny + camPos[2] * nz);
+          const c = camPos[0] * camPos[0] + camPos[1] * camPos[1] + camPos[2] * camPos[2] - sphereR * sphereR;
+          const disc = b * b - 4 * c;
+          if (disc < 0) return false;
+          const t = (-b - Math.sqrt(disc)) / 2;
+          return t > 0 && t < dist;
+        }
+
+        // Single pass: draw non-occluded particles only, AFTER the sphere
+        // (Particles in front of the sphere or beside it get drawn on top.
+        //  Particles behind the sphere are geometrically occluded and skipped.)
+        for (let i = 0; i < particles.length; i++) {
+          const p = particles[i];
+
+          // Advance along streamline
+          p.t += dt * flowSpeed * p.speed * 0.12;
+
+          // Wrap around
+          if (p.t >= 1) {
+            p.t = 0;
+            p.streamlineId = totalStreamlines > 0
+              ? Math.floor(Math.random() * totalStreamlines) : 0;
+            p.glyph = randomWord();
+          }
+
+          // Find segment range for this streamline
+          const streamStart = p.streamlineId > 0 ? bounds[p.streamlineId - 1] : 0;
+          const streamEnd = p.streamlineId < bounds.length ? bounds[p.streamlineId] : segs.length;
+          const streamSegCount = streamEnd - streamStart;
+          if (streamSegCount < 2) continue;
+
+          // Sample position at t along the streamline
+          const rawIdx = p.t * (streamSegCount - 1);
+          const segIdx = streamStart + Math.floor(rawIdx);
+          const frac = rawIdx - Math.floor(rawIdx);
+          const idx = Math.min(segIdx, segs.length - 2);
+          const s0 = segs[idx];
+          const s1 = segs[Math.min(idx + 1, segs.length - 1)];
+
+          // Interpolate projected 2D position + camera depth
+          const px = s0.x1 + (s0.x2 - s0.x1) * frac;
+          const py = s0.y1 + (s0.y2 - s0.y1) * frac;
+          const depth = (s0.depth ?? 0) + ((s1.depth ?? 0) - (s0.depth ?? 0)) * frac;
+
+          // Interpolate segment angle for word rotation along streamline
+          const angle = (s0.angle ?? 0) + ((s1.angle ?? 0) - (s0.angle ?? 0)) * frac;
+
+          // Interpolate 3D world position for occlusion test
+          const xw = (s0.x1w ?? 0) + ((s1.x1w ?? 0) - (s0.x1w ?? 0)) * frac;
+          const yw = (s0.y1w ?? 0) + ((s1.y1w ?? 0) - (s0.y1w ?? 0)) * frac;
+          const zw = (s0.z1w ?? 0) + ((s1.z1w ?? 0) - (s0.z1w ?? 0)) * frac;
+
+          // Skip if occluded by sphere (ray from camera passes through sphere)
+          if (isOccluded(xw, yw, zw)) continue;
+
+          // Camera-depth-based scale: farther = smaller, dimmer
+          const perspScale = 1 / (1 + depth / focalLen);
+          const fontSize = Math.max(2.5, baseFontSize * perspScale * 3.5);
+          const charAlpha = Math.max(0.03, perspScale * 0.85);
+
+          ctx.globalAlpha = charAlpha * fadeIn;
+          ctx.font = `${fontSize.toFixed(1)}px ${currentFontFamily}`;
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(angle);
+          ctx.fillText(p.glyph, 0, 0);
+          ctx.restore();
+        }
+
+        // ── Sphere is a pure void — no fill, no color ──
+        // The occlusion test above hides particles behind the sphere.
+        // The sphere itself is invisible — its presence is felt through
+        // the gap in the particle stream and the 3D occlusion behavior.
+
+        ctx.restore(); // restore the translate/scale transform from line 3166
+      }
+
+      // ── Debug overlay outside the transform ──
+      if (renderScene === 19) {
+        const fp = paramsRef.current.fluidStream;
+        const debugLines = [
+          `azimuth=${fp.cameraAzimuth.toFixed(1)}°  elev=${fp.cameraElevation.toFixed(1)}°  dist=${fp.cameraDistance.toFixed(0)}`,
+          `sphereR=${fp.sphereRadius}  streamlines=${fp.streamlineCount}  particles=${fp.particleCount}`,
+          `fps: ???`,
+        ];
+        ctx.save();
+        ctx.globalAlpha = 0.85;
+        ctx.font = "13px monospace";
+        ctx.fillStyle = "rgba(180, 220, 235, 0.9)";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        // Background strip
+        const lh = 18;
+        const dbgW = 520;
+        const dbgH = debugLines.length * lh + 8;
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.fillRect(8, 8, dbgW, dbgH);
+        ctx.fillStyle = "rgba(180, 220, 235, 0.9)";
+        for (let i = 0; i < debugLines.length; i++) {
+          ctx.fillText(debugLines[i], 14, 14 + i * lh);
+        }
+        ctx.restore();
+      }
+
       // Restore our global transition scale wrapper
       ctx.restore();
 
@@ -3346,6 +3820,7 @@ function layoutTextOnCircleArc(
       rotation,
       scale: 1,
       opacity: 1,
+      segDepth: 0,
     });
     arcPos += allWidths[i];
   }
@@ -3570,6 +4045,7 @@ function layoutTextOnCircleArcCached(
 let _sceneEntryT: number | null = null;
 let _prevSceneElapsed = 0;
 let _prevGlobalScene = -1;
+let _scene18EntryProgress: number | null = null; // scene 18: capture progress on first render to start from 0
 
 function renderFirstRing(
   ctx: CanvasRenderingContext2D,
