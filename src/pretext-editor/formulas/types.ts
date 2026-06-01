@@ -8,12 +8,15 @@ export interface FormulaParams {
 
 /** A line segment where text flows */
 export interface LineSegment {
-  x1: number; y1: number;  // start point
-  x2: number; y2: number;  // end point
+  x1: number; y1: number;  // start point (projected 2D screen space)
+  x2: number; y2: number;  // end point (projected 2D screen space)
   angle: number;           // tangent angle
   length: number;
-  depth: number;           // for scale variation
+  depth: number;           // camera-space depth (z) for occlusion sorting
   visualOnly?: boolean;    // true = draw red line but skip text placement
+  // 3D world-space position (for 3D formulas only)
+  x1w?: number; y1w?: number; z1w?: number;
+  x2w?: number; y2w?: number; z2w?: number;
 }
 
 /** Shape bounds for geometric fill */

@@ -76,6 +76,23 @@ export interface SceneParams {
     reconnectDist: number; spread: number;
     fontSize: number; scale: number;
   };
+  rootCircuit: {
+    gridRows: number; gridCols: number; tendrilCount: number;
+    knotStrands: number; gridTilt: number;
+    progress: number; fontSize: number; scale: number;
+  };
+  circuitBoard: {
+    gridRows: number; gridCols: number; gridTilt: number;
+    componentDensity: number;
+    progress: number; fontSize: number; scale: number;
+  };
+  fluidStream: {
+    sphereRadius: number; streamlineCount: number;
+    domeHeight: number; noiseAmplitude: number; noiseFrequency: number;
+    particleCount: number; flowSpeed: number;
+    fontSize: number; scale: number;
+    cameraAzimuth: number; cameraElevation: number; cameraDistance: number;
+  };
   brush: {
     strokeCount: number; maxLength: number; maxWidth: number;
     bristleCount: number; spiralTightness: number; jitter: number;
@@ -117,8 +134,11 @@ export const DEFAULT_PARAMS: AllSceneParams = {
   brainMesh: { foldDepth: 0.18, foldFreq: 5, fissureDepth: 0.22, resU: 18, resV: 16, scale: 1, rotSpeed: 0.04, tiltX: 0.35, tiltY: 0, fontSize: 7, autoRotate: true, brainRenderer: 0 },
   globalCircuit: { rings: 10, meridians: 14, connections: 30, nodeCount: 40, scale: 1, rotSpeed: 0.15, tiltX: 0.35, fontSize: 7 },
   myceliumNetwork: { nodes: 5, branches: 5, depth: 3, stepLength: 50, angleSpread: 0.55, lengthDecay: 0.62, reconnectDist: 65, spread: 220, fontSize: 7, scale: 1 },
+  rootCircuit: { gridRows: 10, gridCols: 12, tendrilCount: 16, knotStrands: 80, gridTilt: 0.55, progress: 1, fontSize: 7, scale: 1 },
+  circuitBoard: { gridRows: 10, gridCols: 12, gridTilt: 0.55, componentDensity: 0.5, progress: 1, fontSize: 7, scale: 1 },
   brush: { strokeCount: 26, maxLength: 180, maxWidth: 110, bristleCount: 1, spiralTightness: 0.8, jitter: 0, fontSize: 0, scale: 1 },
   knitting: { stitchWidth: 24, stitchHeight: 20, rows: 10, stitchesPerRow: 16, needleLength: 160, cableFrequency: 0, cableOffset: 3, yarnSlack: 0.2, tension: 0.85, progress: 1.0, gravity: 1.0, wind: 0.4, fontSize: 6, scale: 1 },
+  fluidStream: { sphereRadius: 80, streamlineCount: 80, domeHeight: 200, noiseAmplitude: 40, noiseFrequency: 0.008, particleCount: 3500, flowSpeed: 1.5, fontSize: 8, scale: 1, cameraAzimuth: -80, cameraElevation: -30, cameraDistance: 160 },
 };
 
 // ─── Scene → Param Group Mapping ─────────────────────────────────────
@@ -136,9 +156,12 @@ const SCENE_GROUPS: Record<number, string[]> = {
   9: ["convergence"],
   10: ["mycelial"],
   11: ["myceliumNetwork"],
+  18: ["rootCircuit"],
+  19: ["circuitBoard"],
   12: ["brainMesh"],
   14: ["brush"],
   16: ["knitting"],
+  20: ["fluidStream"],
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -160,6 +183,9 @@ const GROUP_LABELS: Record<string, string> = {
   brainMesh: "🧠 3D Brain Mesh",
   globalCircuit: "🌐 Global Circuit",
   myceliumNetwork: "🍄 Mycelium Network",
+  rootCircuit: "🌱 Root Circuit",
+  circuitBoard: "⚡ Circuit Board",
+  fluidStream: "🌀 Fluid Stream",
   brush: "🖌 Brush Stroke",
   knitting: "🧶 Knitting Stitch",
 };
@@ -222,6 +248,16 @@ function getRange(key: string, val: number) {
   else if (key === "basePairs") { min = 4; max = 30; step = 1; }
   else if (key === "turns") { min = 1; max = 10; step = 1; }
   else if (key === "bloom") { min = 0; max = 1; step = 0.01; }
+  else if (key === "domeHeight") { min = 0; max = 500; step = 5; }
+  else if (key === "noiseAmplitude") { min = 0; max = 200; step = 1; }
+  else if (key === "noiseFrequency") { min = 0.001; max = 0.05; step = 0.001; }
+  else if (key === "particleCount") { min = 100; max = 5000; step = 100; }
+  else if (key === "flowSpeed") { min = 0; max = 5; step = 0.1; }
+  else if (key === "sphereRadius") { min = 10; max = 300; step = 5; }
+  else if (key === "streamlineCount") { min = 10; max = 200; step = 5; }
+  else if (key === "cameraAzimuth") { min = -90; max = 90; step = 1; }
+  else if (key === "cameraElevation") { min = -90; max = 90; step = 1; }
+  else if (key === "cameraDistance") { min = 50; max = 500; step = 5; }
   return { min, max, step };
 }
 

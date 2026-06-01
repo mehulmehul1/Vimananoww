@@ -27,6 +27,10 @@ import { scribeFlow } from './organic/scribeFlow';
 import { brushStroke } from './organic/brushStroke';
 import { knittingStitch } from './organic/knittingStitch';
 import { letterGrid } from './organic/letterGrid';
+import { rootCircuit } from './organic/rootCircuit';
+import { circuitBoard } from './organic/circuitBoard';
+import { fluidStream, traceWorldStreamlines, projectWorldStreamlines } from './organic/fluidStream';
+import type { WorldStreamlineData, ProjectedStreamlineResult } from './organic/fluidStream';
 
 export * from './types';
 export * from './helpers';
@@ -64,6 +68,15 @@ export {
   scribeFlow,
   letterGrid,
   knittingStitch,
+  rootCircuit,
+  circuitBoard,
+  fluidStream,
+  traceWorldStreamlines,
+  projectWorldStreamlines,
+};
+export type {
+  WorldStreamlineData,
+  ProjectedStreamlineResult,
 };
 
 export const TEMPLATES: Template[] = [
@@ -185,6 +198,18 @@ export const TEMPLATES: Template[] = [
     description: 'Text flows along manuscript lines like a quill writing on paper',
     defaultParams: { pageWidth: 320, pageHeight: 440, lineCount: 18, marginX: 30, marginY: 40 },
     formula: scribeFlow,
+  },
+  {
+    name: 'Root Circuit',
+    description: 'Technology grown — roots ascending into circuit grid',
+    defaultParams: { gridRows: 10, gridCols: 12, tendrilCount: 14, branchDepth: 2, knotDensity: 50, tiltAngle: 0.55, progress: 1 },
+    formula: rootCircuit,
+  },
+  {
+    name: 'Fluid Stream',
+    description: 'Text flows along potential-flow streamlines around a sphere',
+    defaultParams: { sphereRadius: 100, flowAngle: Math.PI / 4, streamlineCount: 40, turbulence: 8, turbStrength: 12, canvasSize: 400 },
+    formula: fluidStream,
   },
 ];
 
