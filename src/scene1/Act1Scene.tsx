@@ -33,15 +33,11 @@ import {
   knittingStitch,
   rootCircuit,
   circuitBoard,
-  fluidStream,
-  traceWorldStreamlines,
-  projectWorldStreamlines,
   getCompiledPaths,
   BRAIN_WORDS,
   BRAIN_PATHS,
   wordColor,
   type LineSegment,
-  type WorldStreamlineData,
 } from "../pretext-editor/formulas";
 import {
   getLetterStrokes,
@@ -703,19 +699,6 @@ const SCENES: SceneDef[] = [
     origin: "grown then wired",
     duration: 14,
   },
-  {
-    phaseId: "21",
-    navLabel: "🌀 VIMĀNA",
-    headline: "VIMĀNA",
-    body: "The vessel. A sphere suspended in the flow of becoming. Streams of consciousness part and converge around its form — the soul navigating the currents of existence.",
-    formula: "fluidStream / potential flow",
-    status: "the vessel",
-    frequency: "3999.99 Hz",
-    amplitude: "1.000",
-    coordinates: "21 00 00.00 N / 21 00 00.00 E",
-    origin: "the sphere",
-    duration: 10,
-  },
 ];
 
 // Production (Vercel): only first 4 scenes. Local: all scenes.
@@ -1007,27 +990,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
   // Orbital drag state for brain scene
   const dragRef = useRef({ active: false, lastX: 0, lastY: 0, rotX: 0.35, rotY: 0 });
-  // Orbital drag state for fluid stream scene 19
-  const fluidDragRef = useRef({ active: false, lastX: 0, lastY: 0, altKey: false });
-
-  // Scene 21 (fluidStream) cache & particles
-  interface FlowParticle {
-    streamlineId: number;
-    t: number;
-    speed: number;
-    glyph: string;
-  }
-  const fluidCacheRef = useRef<{
-    key: string;
-    segments: LineSegment[];
-    bounds: number[];
-    _cameraPos?: [number, number, number];
-    _focalLen?: number;
-    _sphereScreenR?: number;
-  } | null>(null);
-  const fluidWorldCacheRef = useRef<{ key: string; data: WorldStreamlineData } | null>(null);
-  const fluidParticlesRef = useRef<FlowParticle[]>([]);
-
   const [scene, setScene] = useState(Math.min(initialScene ?? 0, TOTAL_SCENES - 1));
   const [sceneProgress, setSceneProgress] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
@@ -1109,12 +1071,6 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         dragRef.current.lastX = e.clientX;
         dragRef.current.lastY = e.clientY;
         canvas.setPointerCapture(e.pointerId);
-      } else if (sceneRef.current === 19) {
-        fluidDragRef.current.active = true;
-        fluidDragRef.current.lastX = e.clientX;
-        fluidDragRef.current.lastY = e.clientY;
-        fluidDragRef.current.altKey = e.altKey;
-        canvas.setPointerCapture(e.pointerId);
       }
     };
     const onPointerMove = (e: PointerEvent) => {
@@ -1126,25 +1082,10 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
         dragRef.current.rotX = Math.max(-1.2, Math.min(1.2, dragRef.current.rotX));
         dragRef.current.lastX = e.clientX;
         dragRef.current.lastY = e.clientY;
-      } else if (sceneRef.current === 19 && fluidDragRef.current.active) {
-        const dx = e.clientX - fluidDragRef.current.lastX;
-        const dy = e.clientY - fluidDragRef.current.lastY;
-        const fp = paramsRef.current.fluidStream;
-        if (fluidDragRef.current.altKey) {
-          // Alt+drag = change distance (zoom)
-          fp.cameraDistance = Math.max(50, Math.min(500, fp.cameraDistance + dy * 0.5));
-        } else {
-          // Drag = orbit around
-          fp.cameraAzimuth = Math.max(-90, Math.min(90, fp.cameraAzimuth + dx * 0.15));
-          fp.cameraElevation = Math.max(-90, Math.min(90, fp.cameraElevation + dy * 0.15));
-        }
-        fluidDragRef.current.lastX = e.clientX;
-        fluidDragRef.current.lastY = e.clientY;
       }
     };
     const onPointerUp = (e: PointerEvent) => {
       dragRef.current.active = false;
-      fluidDragRef.current.active = false;
       canvas.releasePointerCapture(e.pointerId);
     };
     canvas.addEventListener("pointerdown", onPointerDown);
@@ -3140,247 +3081,8 @@ export function Act1Scene({ mode = "time", initialScene }: Act1SceneProps) {
 
 
 
-      // === VIMĀNA (scene 21) — Fluid stream around a sphere ===
-      if (renderScene === 19) {
-        const streamText = formulaTexts.fluidStream;
-        const streamScale = Math.min(w, h) / 750;
-        const fp = clamp01(progress);
-        const fadeIn = easeOutCubic(clamp01(fp / 0.12));
-        const scaleRamp = 0.3 + 0.7 * easeOutCubic(fp);
-
-        // ─── Cache world-space streamlines (camera-independent — retraced only on world param change) ───────
-        const fluidP = theatre.fluidStream;
-        const worldKey = `${fluidP.streamlineCount}|${fluidP.noiseAmplitude}|${fluidP.noiseFrequency}|${fluidP.sphereRadius}|${fluidP.scale}`;
-        const fullKey = `${worldKey}|${fluidP.cameraAzimuth}|${fluidP.cameraElevation}|${fluidP.cameraDistance}`;
-
-        // World cache: retrace ONLY when world params change (rare — tune noise/sphere size)
-        if (!fluidWorldCacheRef.current || fluidWorldCacheRef.current.key !== worldKey) {
-          fluidWorldCacheRef.current = {
-            key: worldKey,
-            data: traceWorldStreamlines({
-              sphereRadius: fluidP.sphereRadius,
-              streamlineCount: fluidP.streamlineCount,
-              noiseAmplitude: fluidP.noiseAmplitude,
-              noiseFrequency: fluidP.noiseFrequency,
-              domeHeight: fluidP.domeHeight ?? 0,
-            }),
-          };
-          // Force projected cache rebuild
-          fluidCacheRef.current = null;
-        }
-
-        // Screen cache: re-project from world data when camera (or any) param changes
-        if (!fluidCacheRef.current || fluidCacheRef.current.key !== fullKey) {
-          const worldData = fluidWorldCacheRef.current!.data;
-          const result = projectWorldStreamlines(
-            worldData,
-            fluidP.cameraAzimuth * Math.PI / 180,
-            fluidP.cameraElevation * Math.PI / 180,
-            fluidP.cameraDistance,
-          );
-          fluidCacheRef.current = {
-            key: fullKey,
-            segments: result.segments,
-            bounds: result.bounds,
-            _cameraPos: result.camPos,
-            _focalLen: result.focalLen,
-            _sphereScreenR: result.sphereScreenR,
-          };
-        }
-
-        const cache = fluidCacheRef.current;
-        if (!cache || cache.segments.length === 0) { ctx.restore(); return; }
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.globalAlpha = fadeIn;
-        ctx.scale(
-          scaleRamp * streamScale * fluidP.scale,
-          scaleRamp * streamScale * fluidP.scale,
-        );
-
-        const segs = cache.segments;
-        const bounds = cache.bounds;
-        const totalStreamlines = bounds.length;
-
-        // ─── Split stream text into words for continuous word display ───
-        const streamWords = streamText.split(/\s+/).filter(w => w.length > 0);
-        const wordSource = streamWords.length > 0 ? streamWords : [streamText];
-        function randomWord(): string {
-          return wordSource[Math.floor(Math.random() * wordSource.length)];
-        }
-
-        // ─── Initialize particles lazily ───────
-        const targetCount = fluidP.particleCount || 3500;
-        let particles = fluidParticlesRef.current;
-        if (particles.length !== targetCount) {
-          particles = [];
-          for (let i = 0; i < targetCount; i++) {
-            particles.push({
-              streamlineId: totalStreamlines > 0
-                ? Math.floor(Math.random() * totalStreamlines) : 0,
-              t: Math.random(),
-              speed: 0.3 + Math.random() * 0.7,
-              glyph: randomWord(),
-            });
-          }
-          fluidParticlesRef.current = particles;
-        }
-
-        // ─── Camera data from formula ───────────────────────────────
-        const cacheC = cache as any;
-        const camPos: [number, number, number] = cacheC._cameraPos ?? [0, -80, -240];
-        const focalLen = cacheC._focalLen ?? 240;
-        const sphereScreenR = cacheC._sphereScreenR ?? fluidP.sphereRadius;
-
-        // ─── Draw thin background segments (structure) ───────
-        // Segments are already projected to 2D screen space by the formula
-        const segColor = isAlt
-          ? hexToRGBA(CYAN, 0.18)
-          : tone.isVoid
-            ? "rgba(100, 180, 220, 0.18)"
-            : "rgba(33, 199, 223, 0.20)";
-
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
-        for (const s of segs) {
-          // Skip occluded segments entirely
-          if ((s as any).visualOnly) continue;
-          const depth = s.depth ?? 0;
-          // Camera-depth-based scaling: farther = thinner, dimmer
-          const perspScale = 1 / (1 + depth / focalLen);
-          ctx.lineWidth = Math.max(0.15, 0.6 * perspScale);
-          ctx.globalAlpha = Math.max(0.02, 0.25 * perspScale);
-          ctx.strokeStyle = segColor;
-          ctx.beginPath();
-          ctx.moveTo(s.x1, s.y1);
-          ctx.lineTo(s.x2, s.y2);
-          ctx.stroke();
-        }
-
-        // ─── Animate particles along streamlines ───────
-        const textColor = isAlt
-          ? CYAN
-          : tone.isVoid
-            ? "rgb(160, 210, 235)"
-            : "rgb(20, 170, 200)";
-        const baseFontSize = Math.max(5, fluidP.fontSize || 8);
-        const flowSpeed = fluidP.flowSpeed || 1;
-
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = textColor;
-
-        // Ray-sphere occlusion test (3D geometric)
-        const sphereR = fluidP.sphereRadius;
-        function isOccluded(px: number, py: number, pz: number): boolean {
-          const dx = px - camPos[0], dy = py - camPos[1], dz = pz - camPos[2];
-          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-          if (dist < 0.01) return false;
-          const nx = dx / dist, ny = dy / dist, nz = dz / dist;
-          const b = 2 * (camPos[0] * nx + camPos[1] * ny + camPos[2] * nz);
-          const c = camPos[0] * camPos[0] + camPos[1] * camPos[1] + camPos[2] * camPos[2] - sphereR * sphereR;
-          const disc = b * b - 4 * c;
-          if (disc < 0) return false;
-          const t = (-b - Math.sqrt(disc)) / 2;
-          return t > 0 && t < dist;
-        }
-
-        // Single pass: draw non-occluded particles only, AFTER the sphere
-        // (Particles in front of the sphere or beside it get drawn on top.
-        //  Particles behind the sphere are geometrically occluded and skipped.)
-        for (let i = 0; i < particles.length; i++) {
-          const p = particles[i];
-
-          // Advance along streamline
-          p.t += dt * flowSpeed * p.speed * 0.12;
-
-          // Wrap around
-          if (p.t >= 1) {
-            p.t = 0;
-            p.streamlineId = totalStreamlines > 0
-              ? Math.floor(Math.random() * totalStreamlines) : 0;
-            p.glyph = randomWord();
-          }
-
-          // Find segment range for this streamline
-          const streamStart = p.streamlineId > 0 ? bounds[p.streamlineId - 1] : 0;
-          const streamEnd = p.streamlineId < bounds.length ? bounds[p.streamlineId] : segs.length;
-          const streamSegCount = streamEnd - streamStart;
-          if (streamSegCount < 2) continue;
-
-          // Sample position at t along the streamline
-          const rawIdx = p.t * (streamSegCount - 1);
-          const segIdx = streamStart + Math.floor(rawIdx);
-          const frac = rawIdx - Math.floor(rawIdx);
-          const idx = Math.min(segIdx, segs.length - 2);
-          const s0 = segs[idx];
-          const s1 = segs[Math.min(idx + 1, segs.length - 1)];
-
-          // Interpolate projected 2D position + camera depth
-          const px = s0.x1 + (s0.x2 - s0.x1) * frac;
-          const py = s0.y1 + (s0.y2 - s0.y1) * frac;
-          const depth = (s0.depth ?? 0) + ((s1.depth ?? 0) - (s0.depth ?? 0)) * frac;
-
-          // Interpolate segment angle for word rotation along streamline
-          const angle = (s0.angle ?? 0) + ((s1.angle ?? 0) - (s0.angle ?? 0)) * frac;
-
-          // Interpolate 3D world position for occlusion test
-          const xw = (s0.x1w ?? 0) + ((s1.x1w ?? 0) - (s0.x1w ?? 0)) * frac;
-          const yw = (s0.y1w ?? 0) + ((s1.y1w ?? 0) - (s0.y1w ?? 0)) * frac;
-          const zw = (s0.z1w ?? 0) + ((s1.z1w ?? 0) - (s0.z1w ?? 0)) * frac;
-
-          // Skip if occluded by sphere (ray from camera passes through sphere)
-          if (isOccluded(xw, yw, zw)) continue;
-
-          // Camera-depth-based scale: farther = smaller, dimmer
-          const perspScale = 1 / (1 + depth / focalLen);
-          const fontSize = Math.max(2.5, baseFontSize * perspScale * 3.5);
-          const charAlpha = Math.max(0.03, perspScale * 0.85);
-
-          ctx.globalAlpha = charAlpha * fadeIn;
-          ctx.font = `${fontSize.toFixed(1)}px ${currentFontFamily}`;
-          ctx.save();
-          ctx.translate(px, py);
-          ctx.rotate(angle);
-          ctx.fillText(p.glyph, 0, 0);
-          ctx.restore();
-        }
-
-        // ── Sphere is a pure void — no fill, no color ──
-        // The occlusion test above hides particles behind the sphere.
-        // The sphere itself is invisible — its presence is felt through
-        // the gap in the particle stream and the 3D occlusion behavior.
-
-        ctx.restore(); // restore the translate/scale transform from line 3166
-      }
-
       // ── Debug overlay outside the transform ──
-      if (renderScene === 19) {
-        const fp = paramsRef.current.fluidStream;
-        const debugLines = [
-          `azimuth=${fp.cameraAzimuth.toFixed(1)}°  elev=${fp.cameraElevation.toFixed(1)}°  dist=${fp.cameraDistance.toFixed(0)}`,
-          `sphereR=${fp.sphereRadius}  streamlines=${fp.streamlineCount}  particles=${fp.particleCount}`,
-          `fps: ???`,
-        ];
-        ctx.save();
-        ctx.globalAlpha = 0.85;
-        ctx.font = "13px monospace";
-        ctx.fillStyle = "rgba(180, 220, 235, 0.9)";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        // Background strip
-        const lh = 18;
-        const dbgW = 520;
-        const dbgH = debugLines.length * lh + 8;
-        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
-        ctx.fillRect(8, 8, dbgW, dbgH);
-        ctx.fillStyle = "rgba(180, 220, 235, 0.9)";
-        for (let i = 0; i < debugLines.length; i++) {
-          ctx.fillText(debugLines[i], 14, 14 + i * lh);
-        }
-        ctx.restore();
-      }
+      /* (scene 21 / VIMĀNA removed) */
 
       // Restore our global transition scale wrapper
       ctx.restore();

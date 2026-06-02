@@ -86,13 +86,6 @@ export interface SceneParams {
     componentDensity: number;
     progress: number; fontSize: number; scale: number;
   };
-  fluidStream: {
-    sphereRadius: number; streamlineCount: number;
-    domeHeight: number; noiseAmplitude: number; noiseFrequency: number;
-    particleCount: number; flowSpeed: number;
-    fontSize: number; scale: number;
-    cameraAzimuth: number; cameraElevation: number; cameraDistance: number;
-  };
   brush: {
     strokeCount: number; maxLength: number; maxWidth: number;
     bristleCount: number; spiralTightness: number; jitter: number;
@@ -138,7 +131,6 @@ export const DEFAULT_PARAMS: AllSceneParams = {
   circuitBoard: { gridRows: 10, gridCols: 12, gridTilt: 0.55, componentDensity: 0.5, progress: 1, fontSize: 7, scale: 1 },
   brush: { strokeCount: 26, maxLength: 180, maxWidth: 110, bristleCount: 1, spiralTightness: 0.8, jitter: 0, fontSize: 0, scale: 1 },
   knitting: { stitchWidth: 24, stitchHeight: 20, rows: 10, stitchesPerRow: 16, needleLength: 160, cableFrequency: 0, cableOffset: 3, yarnSlack: 0.2, tension: 0.85, progress: 1.0, gravity: 1.0, wind: 0.4, fontSize: 6, scale: 1 },
-  fluidStream: { sphereRadius: 80, streamlineCount: 80, domeHeight: 200, noiseAmplitude: 40, noiseFrequency: 0.008, particleCount: 3500, flowSpeed: 1.5, fontSize: 8, scale: 1, cameraAzimuth: -80, cameraElevation: -30, cameraDistance: 160 },
 };
 
 // ─── Scene → Param Group Mapping ─────────────────────────────────────
@@ -161,7 +153,6 @@ const SCENE_GROUPS: Record<number, string[]> = {
   12: ["brainMesh"],
   14: ["brush"],
   16: ["knitting"],
-  20: ["fluidStream"],
 };
 
 const GROUP_LABELS: Record<string, string> = {
@@ -185,7 +176,6 @@ const GROUP_LABELS: Record<string, string> = {
   myceliumNetwork: "🍄 Mycelium Network",
   rootCircuit: "🌱 Root Circuit",
   circuitBoard: "⚡ Circuit Board",
-  fluidStream: "🌀 Fluid Stream",
   brush: "🖌 Brush Stroke",
   knitting: "🧶 Knitting Stitch",
 };
